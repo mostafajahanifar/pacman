@@ -1,15 +1,12 @@
+import os
 import pandas as pd
 import numpy as np
-import math
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 import random
+import argparse
 
-from lifelines import CoxPHFitter
-from lifelines.statistics import logrank_test
-from lifelines import KaplanMeierFitter
 
-from survival_utils import CoxPH_train_val, CoxPH_train_infer, clinic_eval, extract_train_val_hazard_ratios
+from survival_utils import CoxPH_train_val, clinic_eval, extract_train_val_hazard_ratios
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -57,7 +54,7 @@ def bootstrap_cph(discov_df, EE, plots_save_path, feats_list, time_col, event_co
     c_indices = []
     p_values = []
     num_fails = 0
-    for run in tqdm(range(BOOTSTRAP_RUNS), desc='bootsrap', leave=False):
+    for run in range(BOOTSTRAP_RUNS):
         index_train = list(rng.choice(np.nonzero(EE==0)[0],size = len(EE)-np.sum(EE),replace=True))+list(rng.choice(np.nonzero(EE==1)[0],size = np.sum(EE),replace=True))
         index_test = list(set(range(len(EE))).difference(index_train))
         
@@ -108,8 +105,6 @@ def cross_val(splits_path, feats_path, plots_save_path, feats_list, time_col, ev
 
     hr_scores = np.zeros((649, 3))
     for k in nfolds:
-        #path_to_train_set = main_path + '/fold' + str(k) + '/discov_3fold_' + str(k) + '.csv'
-        #path_to_val_set = main_path + '/fold' + str(k) + '/valid_3fold_' + str(k) + '.csv'
         splits = pd.read_csv(splits_path)
         train_ids = splits['S' + str(k) + '_discov'].dropna()
         train_ids = pd.DataFrame(train_ids.to_list(), columns=['Case ID'])
@@ -142,69 +137,58 @@ def cross_val(splits_path, feats_path, plots_save_path, feats_list, time_col, ev
     val_mean_Pvalue = 2*np.median(np.asarray(p_values_test))
     return val_mean_Cindex, val_mean_Pvalue
 
+
+
 if __name__ == '__main__':
-    
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('--cancer_types', nargs='+', required=True)
+    parser.add_argument('--cancer_subset', default=None)
+    parser.add_argument('--event_type', required=True)
+    parser.add_argument('--censor_at', type=int, default=-1)
+    parser.add_argument('--results_root', default='./FS_results/')
+
+    args = parser.parse_args()
+
+    cancer_types = args.cancer_types
+    cancer_subset = args.cancer_subset
+    event_type = args.event_type
+    censor_at = args.censor_at
+    results_root = args.results_root
+
     # num selected features
     num_features = 10
     
     ##path where to save the plots etc
-    plots_save_path = 'all_feats_combi/KM_plots/'
+    plots_save_path = 'all_feats_combi/KM_plots/' #ALAKI
     
-    discov_val_feats_path = '/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_clinical_merged.csv'
+    discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_clinical_merged.csv'
     discov_df = pd.read_csv(discov_val_feats_path)
-    discov_df = discov_df.loc[discov_df['type'].isin(['BRCA'])]
-    all_feats_list = pd.read_csv('all_feature_list.csv', header=None)[0].to_list()
+    discov_df = discov_df.loc[discov_df['type'].isin(cancer_types)]
+    feats_list = pd.read_csv('noncorrolated_feature_list.csv', header=None)[0].to_list()
+
+    print(f"Initial number of cases in this cancer type: {len(discov_df)}")
     
-    print('Number of features in the input: ', len(all_feats_list))
-    
-    ##### Feature cleanup: first based on std and then based on correlation (also manually based on previous experiments)
-    std_thresh = 0.05 # normalized standard deviation
-    corr_tresh = 0.8 # if correlation of a couple of features is higher than this, delete one of them
-    
-    feature_exclusion_list = ['mit_nodeDegrees_min', 'mit_clusterCoff_min', 'mit_cenHarmonic_min']
-    feats_list = []
-    # remove useless features
-    features_std = discov_df[all_feats_list].std()
-    for feat in all_feats_list:
-        if features_std[feat] > 0 and feat not in feature_exclusion_list:
-           feats_list.append(feat) 
-           
-    print('Number of features that have std larger than 0: ', len(feats_list))
-    
-    # remove features that have low variance in normalized values:
-    normalized_df = (discov_df[feats_list] - discov_df[feats_list].min()) / (discov_df[feats_list].max() - discov_df[feats_list].min())
-    features_std = normalized_df.std()
-    for feat in feats_list.copy():
-        if features_std[feat] < std_thresh:
-            feats_list.remove(feat)
-    print(f'Number of normalized features that have std larger than {std_thresh}: ', len(feats_list))
-           
-    # corrolation check
-    # feats_list = find_uncorrolated_features_old(discov_df, feats_list, corr_tresh)
-    feats_list, corrolated_feats_list = find_uncorrolated_features(discov_df, feats_list, corr_tresh)
-    print('Number of features uncorrelated features: ', len(feats_list))
-    
-    print(feats_list)
-    
-    nfolds = [1,2,3] ##number of splits to use for fitting the model and result generation. value from 1 to 3 like [1,2,3] to use all the 3 splits; [1,2] to use split 1 and 2; [3] only use split 3.
+    nfolds = [1,2,3] # ALAKI
     model_type = 'cox' ## 'rsf': for Random Survival Forest, 'cox': for Cox PH regression model
-    save_plot = True ##whether to save the KM curve plots
-    censor_at = 1000 #in months. e.g 10 years = 120 months. 180 for 15 years, 240 for 20 years. Use -1 if no censoring is required 
+    save_plot = False # ALAKI
     rsf_rseed = 100 ## random seed for Random Survival Forest
     cutoff_mode = 'median' ## 'median' | 'mean' ## the cut off point calculation for stratification of high vs low risk cases
     cutoff_point =  -1 ## 0.92 ##if set to -1 then median will be used as cut off. If set to any other positive value then cut_mode option will be ignores and the fixed cut off provided will be used for stratification of high vs low risk cases
-
-    time_col = 'OS.time' #'TTDM/ month' | 'Breast cancer specific survival/ month'
-    event_col = 'OS' #'Distant Metastasis' | 'Survival Status'
-
-    subset = None ##'Endocrine'|'Endocrine_LN0'; 'Endocrine': Endocrine treated only with lymph node 0-3; 'Endocrine_LN0': Endocrine treated lymph node negative
+    time_col = f'{event_type}.time'
+    event_col = event_type
+    subset = cancer_subset ##'Endocrine'|'Endocrine_LN0'; 'Endocrine': Endocrine treated only with lymph node 0-3; 'Endocrine_LN0': Endocrine treated lymph node negative
     
     discov_df = discov_df.dropna(subset=[event_col, time_col])
     discov_df[event_col] = discov_df[event_col].astype(int)
     discov_df[time_col] = discov_df[time_col].astype(int)
+
+    print(f"Number of cases in FS experiment after dropping NA: {len(discov_df)}")
     
     EE = discov_df[event_col].to_numpy()
-    fid = open('feature_selection_history_mitosis_DM_Censor120.txt', 'w')
+    save_dir = results_root + f"FS_{cancer_types}/"
+    os.makedirs(save_dir, exist_ok=True)
+    save_name = f"FS_{cancer_types}_{event_type}_censor{censor_at}.txt"
+    fid = open(save_dir + save_name, 'w')
     fid.write('selected_features;c_index;c_index_std;p_value;num_fails\n')
     worst_score = 0
     selected_features = []
@@ -242,7 +226,7 @@ if __name__ == '__main__':
         print(f'Best features at step {i+1}/{num_features} are: {selected_features}')
         print(score_df.iloc[0])
         
-        log = f'{selected_features};{score_df.iloc[0][0]};{score_df.iloc[0][1]};{score_df.iloc[0][2]}\n'
+        log = f'{selected_features};{score_df.iloc[0][0]};{score_df.iloc[0][1]};{score_df.iloc[0][2]};{score_df.iloc[0][3]}\n'
         fid.write(log)
         
         # shuffle the features for the next round

@@ -1,0 +1,8 @@
+cancer types (all endpoints):
+BLCA, CESC, COAD, ESCA, HNSC, KIRP, LUAD, LUSC, OV, PAAD, STAD, UCEC
+
+Cancer types for event PFI:
+BLCA, BRCA, CESC, COAD, ESCA, GBM, HNSC, KICH, KIRC, KIRP, LGG, LIHC, LUAD, LUSC, OV, PAAD, READ, SKCM, STAD, UCEC
+
+cancer types to avoid:
+PCPG (no event), DLBC (no slides), THYM (no slides), LAML (no slides), SARC (no slides), CHOL (no slides), ACC (not enough slides)

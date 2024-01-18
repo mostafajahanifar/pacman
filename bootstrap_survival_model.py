@@ -1,15 +1,7 @@
 import pandas as pd
 import numpy as np
-import math
-import matplotlib.pyplot as plt
 from tqdm import tqdm
-import seaborn as sns
 
-from lifelines import CoxPHFitter
-from lifelines.statistics import logrank_test
-from lifelines import KaplanMeierFitter
-from lifelines import utils
-from numpy import dot, einsum, log, exp, zeros, arange, multiply, ndarray
 
 from survival_utils import CoxPH_train_val, CoxPH_train_infer, clinic_eval, extract_train_val_hazard_ratios
 
@@ -58,20 +50,21 @@ if __name__ == '__main__':
     ##path where to save the plots etc
     plots_save_path = 'all_feats_combi/KM_plots/'
     ##path to the csv file containing features for all the sets/cases including train/val
-    discov_val_feats_path = 'all_feats_combi/features_combined/NOTT/discovery_valid_combined.csv'
+    discov_val_feats_path = '/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_clinical_merged.csv'
     discov_df = pd.read_csv(discov_val_feats_path)
-    all_feats_list = ['g1g3_cooccur', 'grade1n2_tilab_morisita', 'clusterCoff_mean', 'pleo_conf_60', 'tumor_immu_cell_cooccur', 'inter_WSI_T_density_correlation', 'grade2n3_morisita', 'grade_top_5', 'pleo_top_101', 'stil'] # list(discov_df.columns[223:310]) # Digital Features: [39:] --- mitotic features: [223:310] --- Clinical Features: [5:20]
+    discov_df = discov_df.loc[discov_df['type'].isin(['BRCA'])]
+    all_feats_list = pd.read_csv('all_feature_list.csv', header=None)[0].to_list()
     
     print('Number of features in the input: ', len(all_feats_list))
     
     ##### Feature cleanup: first based on std and then based on correlation (also manually based on previous experiments)
-    std_thresh = 0 # normalized standard deviation
-    corr_tresh = 1
+    std_thresh = 0.01 # normalized standard deviation
+    corr_tresh = 0.7
     
-    feature_exclusion_list = ['cenCloseness_min', 'cenHarmonic_min', 'nodeDegrees_min', 'LVI_per_regionpatch_30', 'grade2n3_tilab_shannon', 'tsarea_ratio_tarea', 'pleo1n2_tilab_shannon', 'pleo1n3_tilab_shannon']
+    feature_exclusion_list = ['mit_nodeDegrees_min', 'mit_clusterCoff_min', 'mit_cenHarmonic_min']
     feats_list = []
     # remove useless features
-    features_std = discov_df.std()
+    features_std = discov_df[all_feats_list].std()
     for feat in all_feats_list:
         if features_std[feat] > 0 and feat not in feature_exclusion_list:
            feats_list.append(feat) 
@@ -90,21 +83,29 @@ if __name__ == '__main__':
     # feats_list = find_uncorrolated_features_old(discov_df, feats_list, corr_tresh)
     feats_list, corrolated_feats_list = find_uncorrolated_features(discov_df, feats_list, corr_tresh)
     print('Number of features uncorrelated features: ', len(feats_list))
+    print(feats_list)
+    feats_list = ['mit_cenEigen_max', 'mit_cenEigen_min', 'mit_clusterCoff_perc80', 'mit_clusterCoff_perc10']
+    print(feats_list)
     
     # defining the parameters for survival analysis
     model_type = 'cox' ## 'rsf': for Random Survival Forest, 'cox': for Cox PH regression model
     save_plot = True ##whether to save the KM curve plots
-    censor_at = 120 #in months. e.g 10 years = 120 months. 180 for 15 years, 240 for 20 years. Use -1 if no censoring is required 
+    censor_at = -1 #in months. e.g 10 years = 120 months. 180 for 15 years, 240 for 20 years. Use -1 if no censoring is required 
     rsf_rseed = 100 ## random seed for Random Survival Forest
     cutoff_mode = 'median' ## 'median' | 'mean' ## the cut off point calculation for stratification of high vs low risk cases
     cutoff_point =  -1 ## 0.92 ##if set to -1 then median will be used as cut off. If set to any other positive value then cut_mode option will be ignores and the fixed cut off provided will be used for stratification of high vs low risk cases
-    time_col = 'TTDM/ month' #'TTDM/ month' | 'Breast cancer specific survival/ month'
-    event_col = 'Distant Metastasis' #'Distant Metastasis' | 'Survival Status'
-    subset = 'Endocrine_LN0' ##'Endocrine'|'Endocrine_LN0'; 'Endocrine': Endocrine treated only with lymph node 0-3; 'Endocrine_LN0': Endocrine treated lymph node negative
+    time_col = 'OS.time' #'TTDM/ month' | 'Breast cancer specific survival/ month'
+    event_col = 'OS' #'Distant Metastasis' | 'Survival Status'
+    subset = None ##'Endocrine'|'Endocrine_LN0'; 'Endocrine': Endocrine treated only with lymph node 0-3; 'Endocrine_LN0': Endocrine treated lymph node negative
     
     ######################################### Start the bootstraping
     # initialize the output lists
-    bootsrap_num = 1000
+    bootsrap_num = 100
+
+    discov_df = discov_df.dropna(subset=[event_col, time_col])
+    discov_df[event_col] = discov_df[event_col].astype(int)
+    discov_df[time_col] = discov_df[time_col].astype(int)
+
     EE = discov_df[event_col].to_numpy()
     rng = np.random.RandomState()
     c_indices = []
@@ -128,7 +129,8 @@ if __name__ == '__main__':
         
         if run == 0:
             test_hazard_ratios, c_index, p_value = output
-        else:
+        
+        if run != 0 and output != -1:
             temp, c_index, p_value = output
             test_hazard_ratios = pd.concat([test_hazard_ratios, temp], axis=1, join='outer', ignore_index=True, sort=False)
         c_indices.append(c_index)
@@ -152,7 +154,8 @@ if __name__ == '__main__':
     # print(top_features)
     
     # top_test_hazard_ratios.to_csv(f'bootstrap_results_{event_col}_{subset}_stdThresh{std_thresh}_top20.csv')
-    
+    print(2*np.median(p_values))
+    print(np.mean(c_indices))
     df_to_save =  test_hazard_ratios.T
     df_to_save['c_index'] = c_indices
     df_to_save['p_value'] = p_values

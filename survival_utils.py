@@ -78,8 +78,9 @@ def extract_train_val_hazard_ratios(path_to_train_set, path_to_val_set, path_to_
     val_data = val_data.fillna(0)
 
     ##apply censoring. 
-    val_data.loc[val_data[time_col] > censor_at, event_col] = 0
-    val_data.loc[val_data[time_col] > censor_at, time_col] = censor_at
+    if censor_at > 0:
+        val_data.loc[val_data[time_col] > censor_at, event_col] = 0
+        val_data.loc[val_data[time_col] > censor_at, time_col] = censor_at
 
     ##convert all events other than 1 to 0
     val_data.loc[val_data[event_col] > 1, event_col] = 0
@@ -285,8 +286,9 @@ def CoxPH_train_val(path_to_train_set, path_to_val_set, path_to_save_results, fe
     val_data = val_data.fillna(0)
 
     ##apply censoring. 
-    val_data.loc[val_data[time_col] > censor_at, event_col] = 0
-    val_data.loc[val_data[time_col] > censor_at, time_col] = censor_at
+    if censor_at > 0:
+        val_data.loc[val_data[time_col] > censor_at, event_col] = 0
+        val_data.loc[val_data[time_col] > censor_at, time_col] = censor_at
 
     ##convert all events other than 1 to 0
     val_data.loc[val_data[event_col] > 1, event_col] = 0
@@ -703,8 +705,9 @@ def clinic_eval(path_to_train_set, path_to_val_set, path_to_save_results, feats_
     val_data = val_data.fillna(0)
 
     ##apply censoring. 
-    val_data.loc[val_data[time_col] > censor_at, event_col] = 0
-    val_data.loc[val_data[time_col] > censor_at, time_col] = censor_at
+    if censor_at > 0:
+        val_data.loc[val_data[time_col] > censor_at, event_col] = 0
+        val_data.loc[val_data[time_col] > censor_at, time_col] = censor_at
 
     ##convert all events other than 1 to 0
     val_data.loc[val_data[event_col] > 1, event_col] = 0
