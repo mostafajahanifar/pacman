@@ -1,7 +1,8 @@
+import os
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-
+from sklearn.model_selection import train_test_split
 
 from survival_utils import CoxPH_train_val, CoxPH_train_infer, clinic_eval, extract_train_val_hazard_ratios
 
@@ -13,6 +14,16 @@ def normalize_datasets(train_set, test_set, feats_list, norm_type='meanstd'):
         train_set_normalized = train_set.copy()
         test_set_normalized = test_set.copy()
         train_set_normalized[feats_list] =( train_set[feats_list] - feat_mean ) / feat_std
+        test_set_normalized[feats_list] =( test_set[feats_list] - feat_mean ) / feat_std
+    if norm_type == 'meanstd_wrong':
+        feat_mean = train_set[feats_list].mean()
+        feat_std = train_set[feats_list].std()
+        train_set_normalized = train_set.copy()
+        train_set_normalized[feats_list] =( train_set[feats_list] - feat_mean ) / feat_std
+
+        feat_mean = test_set[feats_list].mean()
+        feat_std = test_set[feats_list].std()
+        test_set_normalized = test_set.copy()
         test_set_normalized[feats_list] =( test_set[feats_list] - feat_mean ) / feat_std
     if norm_type == 'minmax':
         feat_min = train_set[feats_list].min()
@@ -47,12 +58,13 @@ def find_uncorrolated_features(dataset, feats_list, threshold):
     return dataset.columns, col_corr
  
 if __name__ == '__main__':
+    cancer_type = 'OV'
     ##path where to save the plots etc
-    plots_save_path = 'all_feats_combi/KM_plots/'
+    plots_save_path = './all_feats_combi/KM_plots/'
     ##path to the csv file containing features for all the sets/cases including train/val
     discov_val_feats_path = '/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_clinical_merged.csv'
     discov_df = pd.read_csv(discov_val_feats_path)
-    discov_df = discov_df.loc[discov_df['type'].isin(['BRCA'])]
+    discov_df = discov_df.loc[discov_df['type'].isin([cancer_type])]
     all_feats_list = pd.read_csv('all_feature_list.csv', header=None)[0].to_list()
     
     print('Number of features in the input: ', len(all_feats_list))
@@ -84,7 +96,7 @@ if __name__ == '__main__':
     feats_list, corrolated_feats_list = find_uncorrolated_features(discov_df, feats_list, corr_tresh)
     print('Number of features uncorrelated features: ', len(feats_list))
     print(feats_list)
-    feats_list = ['mit_cenEigen_max', 'mit_cenEigen_min', 'mit_clusterCoff_perc80', 'mit_clusterCoff_perc10']
+    feats_list = ['mit_cenEigen_max', 'mit_clusterCoff_perc80']
     print(feats_list)
     
     # defining the parameters for survival analysis
@@ -110,16 +122,26 @@ if __name__ == '__main__':
     rng = np.random.RandomState()
     c_indices = []
     p_values = []
+
     for run in tqdm(range(bootsrap_num)):
         index_train = list(rng.choice(np.nonzero(EE==0)[0],size = len(EE)-np.sum(EE),replace=True))+list(rng.choice(np.nonzero(EE==1)[0],size = np.sum(EE),replace=True))
         index_test = list(set(range(len(EE))).difference(index_train))
+
+        # # # Separate features and target by stratified splitting
+        # discov_df.reset_index(inplace=True, drop=True)
+        # X = discov_df.drop(event_col, axis=1)
+        # y = discov_df[event_col]
+        # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y)
+        # index_train = X_train.index.tolist()
+        # index_test = X_test.index.tolist()
+
         
         train_set = discov_df.iloc[index_train]
         test_set = discov_df.iloc[index_test]
         
         train_set.reset_index(inplace=True)
         test_set.reset_index(inplace=True)
-        
+
         train_set, test_set = normalize_datasets(train_set, test_set, feats_list, norm_type='meanstd')
         
         output = extract_train_val_hazard_ratios(train_set, test_set, plots_save_path, feats_list, time_col, event_col, subset, censor_at, save_plot, cutoff_mode, cutoff_point)

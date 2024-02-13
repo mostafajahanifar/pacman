@@ -8,16 +8,17 @@ from lifelines.statistics import logrank_test
 from lifelines import KaplanMeierFitter
 from sksurv.metrics import concordance_index_censored
 from lifelines.utils import concordance_index
+from lifelines.statistics import logrank_test
 
-
-def extract_train_val_hazard_ratios(path_to_train_set, path_to_val_set, path_to_save_results, feats_list, time_col, event_col, subset, censor_at, plotit, cutoff_mode, cutoff_point):
+def cross_validation_tcga_corrected(path_to_train_set, path_to_val_set, path_to_save_results, feats_list, time_col, event_col, subset, censor_at, plotit, cutoff_mode, cutoff_point):
     train_data = path_to_train_set
-    #train_data = train_data.dropna()
+    # train_data = train_data.dropna()
     train_data = train_data.fillna(0)
 
     ##apply censoring. Commenting these out as we can use the uncensored data for training but for validation will need to censor
-    #train_data.loc[train_data[time_col] > censor_at, event_col] = 0
-    #train_data.loc[train_data[time_col] > censor_at, time_col] = censor_at
+    # if censor_at > 0:
+    #     train_data.loc[train_data[time_col] > censor_at, event_col] = 0
+    #     train_data.loc[train_data[time_col] > censor_at, time_col] = censor_at
 
     ##convert all events other than 1 to 0
     train_data.loc[train_data[event_col] > 1, event_col] = 0
@@ -46,8 +47,8 @@ def extract_train_val_hazard_ratios(path_to_train_set, path_to_val_set, path_to_
     train_data_temp = train_data[feats_list_temp]
 
     estim_method = 'breslow' ## 'breslow', 'spline', 'piecewise'
-    l1_r = 0.5 ## specify what ratio to assign to a L1 vs L2 penalty.
-    penalty = 0.001 #0.001 #0.001 was used for the submission 2, 3, and 4 in the laptop R submission folder. D:/warwick/tasks/Nottingham_Exemplar/ML/cellular_analysis/prelim_val_sets_23_28_n_challenging
+    l1_r = 0.5 # 0.5 ## specify what ratio to assign to a L1 vs L2 penalty.
+    penalty = 0.001 # 0.001
     
     try:
         cph_mva = CoxPHFitter(baseline_estimation_method=estim_method, l1_ratio=l1_r, penalizer=penalty).fit(train_data_temp, duration_col=time_col, event_col=event_col)
@@ -67,11 +68,126 @@ def extract_train_val_hazard_ratios(path_to_train_set, path_to_val_set, path_to_
             cutoff_value = partial_hazard_train.median()
         elif cutoff_mode == 'quantile':
             cutoff_value = partial_hazard_train.quantile(0.60)
+        elif cutoff_mode == 'optimal':
+            cutoff_value = find_optimal_threshold(partial_hazard_train, train_data_temp[time_col], train_data_temp[event_col])
         else:
             cutoff_value = cutoff_mode
     else:
         cutoff_value = cutoff_point
     
+    ##################################################### Predict on the validation set
+    val_data = path_to_val_set #pd.read_csv(path_to_val_set)
+    #val_data = val_data.dropna()
+    val_data = val_data.fillna(0)
+
+    ##apply censoring. 
+    if censor_at > 0:
+        val_data.loc[val_data[time_col] > censor_at, event_col] = 0
+        val_data.loc[val_data[time_col] > censor_at, time_col] = censor_at
+
+    ##convert all events other than 1 to 0
+    val_data.loc[val_data[event_col] > 1, event_col] = 0
+
+     ##apply lymph node filtering i.e consider lymph node negative, or consider lymph node 0-3
+    if subset == 'Endocrine':
+        val_data.drop(val_data[val_data['Endocrine Therapy'] != 1].index, inplace=True)
+        val_data.drop(val_data[val_data['Chemotherapy'] == 1].index, inplace=True)
+
+    if subset == 'Endocrine_LN0':
+        val_data.drop(val_data[val_data['Endocrine Therapy'] != 1].index, inplace=True)
+        val_data.drop(val_data[val_data['Chemotherapy'] == 1].index, inplace=True)
+        val_data.drop(val_data[val_data['Lymph Node status'] == 1].index, inplace=True)
+    
+    val_data_temp = val_data[feats_list_temp]
+
+    partial_hazard_test = cph_mva.predict_partial_hazard(val_data_temp)
+    # c-index on the validation set
+    vcindex = concordance_index(val_data_temp[time_col], -partial_hazard_test, val_data_temp[event_col])
+
+    # Use mean value in the discovery set as the cut-off value and divide subjects int the validation set into two groups
+    upper = partial_hazard_test >= cutoff_value
+    T_upper_test = val_data_temp[time_col][upper]
+    E_upper_test = val_data_temp[event_col][upper]
+    lower = partial_hazard_test < cutoff_value
+    T_lower_test = val_data_temp[time_col][lower]
+    E_lower_test = val_data_temp[event_col][lower]
+
+    results = logrank_test(T_lower_test, T_upper_test, E_lower_test, E_upper_test)
+    
+    val_pvalue = results.p_value
+    val_cindex = vcindex
+    val_hr = cph_mva.hazard_ratios_
+
+    return T_lower_test, T_upper_test, E_lower_test, E_upper_test, val_cindex, val_pvalue, val_hr
+
+
+def cross_validation_tcga(path_to_train_set, path_to_val_set, path_to_save_results, feats_list, time_col, event_col, subset, censor_at, plotit, cutoff_mode, cutoff_point):
+    train_data = path_to_train_set
+    # train_data = train_data.dropna()
+    train_data = train_data.fillna(0)
+
+    ##apply censoring. Commenting these out as we can use the uncensored data for training but for validation will need to censor
+    # if censor_at > 0:
+    #     train_data.loc[train_data[time_col] > censor_at, event_col] = 0
+    #     train_data.loc[train_data[time_col] > censor_at, time_col] = censor_at
+
+    ##convert all events other than 1 to 0
+    train_data.loc[train_data[event_col] > 1, event_col] = 0
+
+    ##apply lymph node filtering i.e consider lymph node negative, or consider lymph node 0-3
+    if subset == 'Endocrine':
+        train_data.drop(train_data[train_data['Endocrine Therapy'] != 1].index, inplace=True)
+        train_data.drop(train_data[train_data['Chemotherapy'] == 1].index, inplace=True)
+
+    ##these lines can be commented out (set 2 == 3 in the if) to train the model using lymph node 0-3 so that more event are included during training even though the validation might be done on LN- only.
+    if subset == 'Endocrine_LN0' and 2 == 2:
+        train_data.drop(train_data[train_data['Endocrine Therapy'] != 1].index, inplace=True)
+        train_data.drop(train_data[train_data['Chemotherapy'] == 1].index, inplace=True)
+        train_data.drop(train_data[train_data['Lymph Node status'] == 1].index, inplace=True)
+    
+    feats_list_temp = []
+    
+    if isinstance(feats_list, str):
+        feats_list_temp = [feats_list, time_col, 'event']
+    else:
+        for l in feats_list:
+            feats_list_temp.append(l)
+        feats_list_temp.append(time_col)
+        feats_list_temp.append(event_col)
+
+    train_data_temp = train_data[feats_list_temp]
+
+    estim_method = 'breslow' ## 'breslow', 'spline', 'piecewise'
+    l1_r = 0.5 # 0.5 ## specify what ratio to assign to a L1 vs L2 penalty.
+    penalty = 0.001 # 0.001
+    
+    try:
+        cph_mva = CoxPHFitter(baseline_estimation_method=estim_method, l1_ratio=l1_r, penalizer=penalty).fit(train_data_temp, duration_col=time_col, event_col=event_col)
+    except:
+        print('Failed in fitting CoxPH for train_data_infer')
+        return -1
+
+    #cph_mva.print_summary() ##print the summary of the fit #####@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    train_data_infer = train_data_temp.drop(columns=[event_col, time_col])
+    partial_hazard_train = cph_mva.predict_partial_hazard(train_data_infer)
+    
+    # Use mean value in the discovery set as the cut-off value and divide subjects into two groups
+    if cutoff_point == -1:
+        if cutoff_mode == 'mean':
+            cutoff_value = partial_hazard_train.mean()
+        elif cutoff_mode == 'median':
+            cutoff_value = partial_hazard_train.median()
+        elif cutoff_mode == 'quantile':
+            cutoff_value = partial_hazard_train.quantile(0.60)
+        elif cutoff_mode == 'optimal':
+            cutoff_value = find_optimal_threshold(partial_hazard_train, train_data_temp[time_col], train_data_temp[event_col])
+        else:
+            cutoff_value = cutoff_mode
+    else:
+        cutoff_value = cutoff_point
+    
+    if plotit:
+        train_fig = plot_km(train_data_temp[time_col],train_data_temp[event_col],partial_hazard_train,cutoff_value)
     ##################################################### Predict on the validation set
     val_data = path_to_val_set #pd.read_csv(path_to_val_set)
     #val_data = val_data.dropna()
@@ -115,7 +231,232 @@ def extract_train_val_hazard_ratios(path_to_train_set, path_to_val_set, path_to_
     val_pvalue = results.p_value
     val_cindex = vcindex
     val_hr = cph_mva.hazard_ratios_
+
+    if plotit:
+        val_fig = plot_km(val_data_temp[time_col],val_data_temp[event_col],partial_hazard_test,cutoff_value)
     
+    if plotit:
+        return val_hr, val_cindex, val_pvalue, partial_hazard_test, val_data_temp, cutoff_value, train_fig, val_fig
+    return val_hr, val_cindex, val_pvalue, partial_hazard_test, val_data_temp, cutoff_value
+
+def plot_km(time_df, event_df, partial_hazard_train, cutoff_value, add_at_risk_counts=True, x_label="Months", y_label=None):
+    upper = partial_hazard_train >= cutoff_value
+    T_upper_train = time_df[upper]
+    E_upper_train = event_df[upper]
+    lower = partial_hazard_train < cutoff_value
+    T_lower_train = time_df[lower]
+    E_lower_train = event_df[lower]
+
+    # evaluating
+    results = logrank_test(T_lower_train, T_upper_train, E_lower_train, E_upper_train)
+
+    # preparing the figure
+    font_size = 18
+    fig_size = 10
+    fig = plt.figure(figsize=(fig_size, fig_size-2)) ##adjust according to font size
+    ax = fig.add_subplot(111)
+    ax.set_xlabel('', fontsize=font_size)
+    ax.set_ylabel('', fontsize=font_size)
+        
+    if results.p_value < 0.0001:
+        train_pvalue_txt = 'p < 0.0001'
+    else:
+        train_pvalue_txt = 'p = ' + str(np.round(results.p_value, 4))
+
+    from matplotlib.offsetbox import AnchoredText
+    ax.add_artist(AnchoredText(train_pvalue_txt, loc=1, frameon=False, prop=dict(size=font_size)))
+    ax.tick_params(axis='x', labelsize=font_size)
+    ax.tick_params(axis='y', labelsize=font_size)
+
+    # Initializing the KaplanMeierModel for each group
+    km_upper = KaplanMeierFitter()
+    km_lower = KaplanMeierFitter()
+    ax = km_upper.fit(T_upper_train, event_observed=E_upper_train, label='high').plot_survival_function(ax=ax, show_censors=True, censor_styles={'ms': 5}, color='r', ci_show=False, xlabel=x_label, ylabel=y_label)
+    ax = km_lower.fit(T_lower_train, event_observed=E_lower_train, label='low').plot_survival_function(ax=ax, show_censors=True, censor_styles={'ms': 5}, color='b', ci_show=False, xlabel=x_label, ylabel=y_label)
+
+    if add_at_risk_counts:
+        from lifelines.plotting import add_at_risk_counts
+        add_at_risk_counts(km_upper, km_lower, ax=ax, fig=fig, fontsize=int(font_size*1) )
+        fig.subplots_adjust(bottom=0.4)
+        fig.subplots_adjust(left=0.2)
+    ax.get_legend().remove()
+    #plt.show()
+    return fig
+        
+
+def normalize_datasets(train_set, test_set, feats_list, norm_type='meanstd'):
+    if norm_type == 'meanstd':
+        feat_mean = train_set[feats_list].mean()
+        feat_std = train_set[feats_list].std()
+        
+        train_set_normalized = train_set.copy()
+        test_set_normalized = test_set.copy()
+        train_set_normalized[feats_list] =( train_set[feats_list] - feat_mean ) / feat_std
+        test_set_normalized[feats_list] =( test_set[feats_list] - feat_mean ) / feat_std
+    if norm_type == 'meanstd_wrong':
+        feat_mean = train_set[feats_list].mean()
+        feat_std = train_set[feats_list].std()
+        train_set_normalized = train_set.copy()
+        train_set_normalized[feats_list] =( train_set[feats_list] - feat_mean ) / feat_std
+
+        feat_mean = test_set[feats_list].mean()
+        feat_std = test_set[feats_list].std()
+        test_set_normalized = test_set.copy()
+        test_set_normalized[feats_list] =( test_set[feats_list] - feat_mean ) / feat_std
+    if norm_type == 'minmax':
+        feat_min = train_set[feats_list].min()
+        feat_max = train_set[feats_list].max()
+        
+        train_set_normalized = train_set.copy()
+        test_set_normalized = test_set.copy()
+        train_set_normalized[feats_list] =( train_set[feats_list] - feat_min ) / (feat_max - feat_min)
+        test_set_normalized[feats_list] =( test_set[feats_list] - feat_min ) / (feat_max - feat_min)
+    
+    return train_set_normalized, test_set_normalized
+
+def find_optimal_threshold(risk_factor, time_to_event, event_occurred):
+    # Define the range of potential thresholds
+    thresholds = np.linspace(risk_factor.min(), risk_factor.max(), 100)
+
+    # Initialize the maximum log-rank statistic and the optimal threshold
+    max_logrank_stat = 0
+    min_p_value = 1000
+    optimal_threshold = None
+
+    # Iterate over the potential thresholds
+    for threshold in thresholds:
+        # Divide the data into groups based on the threshold
+        groups = np.digitize(risk_factor, bins=[threshold])
+        
+        # Calculate the log-rank statistic
+        result = logrank_test(time_to_event[groups == 0], time_to_event[groups == 1],
+                            event_observed_A=event_occurred[groups == 0],
+                            event_observed_B=event_occurred[groups == 1])
+        
+        # If this log-rank statistic is larger than the current maximum,
+        # update the maximum and the optimal threshold
+        if result.p_value < min_p_value:
+            max_logrank_stat = result.test_statistic
+            min_p_value = result.p_value
+            optimal_threshold = threshold
+    print(f'optimal threshold: {optimal_threshold} -> p-value: {min_p_value} , test_stat: {max_logrank_stat}')
+    return optimal_threshold
+
+def extract_train_val_hazard_ratios(path_to_train_set, path_to_val_set, path_to_save_results, feats_list, time_col, event_col, subset, censor_at, plotit, cutoff_mode, cutoff_point):
+    train_data = path_to_train_set
+    #train_data = train_data.dropna()
+    train_data = train_data.fillna(0)
+
+    ##apply censoring. Commenting these out as we can use the uncensored data for training but for validation will need to censor
+    #train_data.loc[train_data[time_col] > censor_at, event_col] = 0
+    #train_data.loc[train_data[time_col] > censor_at, time_col] = censor_at
+
+    ##convert all events other than 1 to 0
+    train_data.loc[train_data[event_col] > 1, event_col] = 0
+
+    ##apply lymph node filtering i.e consider lymph node negative, or consider lymph node 0-3
+    if subset == 'Endocrine':
+        train_data.drop(train_data[train_data['Endocrine Therapy'] != 1].index, inplace=True)
+        train_data.drop(train_data[train_data['Chemotherapy'] == 1].index, inplace=True)
+
+    ##these lines can be commented out (set 2 == 3 in the if) to train the model using lymph node 0-3 so that more event are included during training even though the validation might be done on LN- only.
+    if subset == 'Endocrine_LN0' and 2 == 2:
+        train_data.drop(train_data[train_data['Endocrine Therapy'] != 1].index, inplace=True)
+        train_data.drop(train_data[train_data['Chemotherapy'] == 1].index, inplace=True)
+        train_data.drop(train_data[train_data['Lymph Node status'] == 1].index, inplace=True)
+    
+    feats_list_temp = []
+    
+    if isinstance(feats_list, str):
+        feats_list_temp = [feats_list, time_col, 'event']
+    else:
+        for l in feats_list:
+            feats_list_temp.append(l)
+        feats_list_temp.append(time_col)
+        feats_list_temp.append(event_col)
+
+    train_data_temp = train_data[feats_list_temp]
+
+    estim_method = 'breslow' ## 'breslow', 'spline', 'piecewise'
+    l1_r = 0.5 # 0.5 ## specify what ratio to assign to a L1 vs L2 penalty.
+    penalty = 0.001 # 0.001
+    
+    try:
+        cph_mva = CoxPHFitter(baseline_estimation_method=estim_method, l1_ratio=l1_r, penalizer=penalty).fit(train_data_temp, duration_col=time_col, event_col=event_col)
+    except:
+        print('Failed in fitting CoxPH for train_data_infer')
+        return -1
+
+    #cph_mva.print_summary() ##print the summary of the fit #####@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    train_data_infer = train_data_temp.drop(columns=[event_col, time_col])
+    partial_hazard_train = cph_mva.predict_partial_hazard(train_data_infer)
+    
+    # Use mean value in the discovery set as the cut-off value and divide subjects into two groups
+    if cutoff_point == -1:
+        if cutoff_mode == 'mean':
+            cutoff_value = partial_hazard_train.mean()
+        elif cutoff_mode == 'median':
+            cutoff_value = partial_hazard_train.median()
+        elif cutoff_mode == 'quantile':
+            cutoff_value = partial_hazard_train.quantile(0.60)
+        elif cutoff_mode == 'optimal':
+            cutoff_value = find_optimal_threshold(partial_hazard_train, train_data_temp[time_col], train_data_temp[event_col])
+        else:
+            cutoff_value = cutoff_mode
+    else:
+        cutoff_value = cutoff_point
+    
+    if plotit:
+        train_fig = plot_km(train_data_temp[time_col],train_data_temp[event_col],partial_hazard_train,cutoff_value)
+    ##################################################### Predict on the validation set
+    val_data = path_to_val_set #pd.read_csv(path_to_val_set)
+    #val_data = val_data.dropna()
+    val_data = val_data.fillna(0)
+
+    ##apply censoring. 
+    if censor_at > 0:
+        val_data.loc[val_data[time_col] > censor_at, event_col] = 0
+        val_data.loc[val_data[time_col] > censor_at, time_col] = censor_at
+
+    ##convert all events other than 1 to 0
+    val_data.loc[val_data[event_col] > 1, event_col] = 0
+
+     ##apply lymph node filtering i.e consider lymph node negative, or consider lymph node 0-3
+    if subset == 'Endocrine':
+        val_data.drop(val_data[val_data['Endocrine Therapy'] != 1].index, inplace=True)
+        val_data.drop(val_data[val_data['Chemotherapy'] == 1].index, inplace=True)
+
+    if subset == 'Endocrine_LN0':
+        val_data.drop(val_data[val_data['Endocrine Therapy'] != 1].index, inplace=True)
+        val_data.drop(val_data[val_data['Chemotherapy'] == 1].index, inplace=True)
+        val_data.drop(val_data[val_data['Lymph Node status'] == 1].index, inplace=True)
+    
+    val_data_temp = val_data[feats_list_temp]
+
+    partial_hazard_test = cph_mva.predict_partial_hazard(val_data_temp)
+    # c-index on the validation set
+    vcindex = concordance_index(val_data_temp[time_col], -partial_hazard_test, val_data_temp[event_col])
+
+    # Use mean value in the discovery set as the cut-off value and divide subjects int the validation set into two groups
+    upper = partial_hazard_test >= cutoff_value
+    T_upper_test = val_data_temp[time_col][upper]
+    E_upper_test = val_data_temp[event_col][upper]
+    lower = partial_hazard_test < cutoff_value
+    T_lower_test = val_data_temp[time_col][lower]
+    E_lower_test = val_data_temp[event_col][lower]
+
+    # Log-rank test: if there is any significant difference between the groups being compared
+    results = logrank_test(T_lower_test, T_upper_test, E_lower_test, E_upper_test)
+    
+    val_pvalue = results.p_value
+    val_cindex = vcindex
+    val_hr = cph_mva.hazard_ratios_
+
+    if plotit:
+        val_fig = plot_km(val_data_temp[time_col],val_data_temp[event_col],partial_hazard_test,cutoff_value)
+    
+    if plotit:
+        return val_hr, val_cindex, val_pvalue, train_fig, val_fig
     return val_hr, val_cindex, val_pvalue
 
     
