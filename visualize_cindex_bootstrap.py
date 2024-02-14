@@ -68,8 +68,8 @@ def plot_c_index(csv_files, sig_p_values):
 
 event_types = ['DFI', 'PFI', 'OS', 'DSS']
 for event_type in event_types:
-    censor_at = 60
-    cv_experiment = f'CV_results_5years_median'
+    censor_at = -1
+    cv_experiment = f'CV_results_NoCensor_median'
     cancer_types = [["BLCA"], ["BRCA"], ["CESC"], ["COAD", "READ"], ["ESCA"], ["GBM"], ["HNSC"], ["KICH"], ["KIRC"], ["KIRP"], ["LGG"], ["LIHC"], ["LUAD"], ["LUSC"], ["OV"], ["PAAD"], ["SKCM"], ["STAD"], ["UCEC"]]
 
     csv_files = {}
