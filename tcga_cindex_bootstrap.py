@@ -19,6 +19,7 @@ if __name__ == '__main__':
     parser.add_argument('--results_root', default='./CV_results/')
     parser.add_argument('--splits_root', default=None) # 
     parser.add_argument('--cutoff_mode', default="optimal")
+    parser.add_argument('--baseline_experiment', type=bool, default=False)
 
     # parser.add_argument('--cancer_types', nargs='+', default=['STAD'])
     # parser.add_argument('--cancer_subset', default=None)
@@ -63,17 +64,21 @@ if __name__ == '__main__':
 
     # finding the list of best features
     if censor_at == -1:
-        FS_root = f'./FS_results/FS_results_NoCensoring/FS_{cancer_types}/'
+        FS_root = f"./FS_results_new/FS_results_NoCensoring/FS_{cancer_types}/"
+        FS_path = FS_root + f"FS_{cancer_types}_{event_type}_censor-1.txt"
     else:    
-        FS_root = f'./FS_results/FS_results_{int(censor_at/12)}years/FS_{cancer_types}/'
-    if censor_at == -1:
-        FS_path = FS_root + f'FS_{cancer_types}_{event_type}_censor-1.txt'
+        FS_root = f"./FS_results_new/FS_results_{int(censor_at/12)}years/FS_{cancer_types}/"
+        FS_path = FS_root + f"FS_{cancer_types}_{event_type}_censor{int(365*censor_at/12)}.txt"
+    print('Reading the best features from : ', FS_path)
+
+    if args.baseline_experiment:
+        feats_list = ['mit_hotspot_count']
+        print(f'Running baseline experiments with {feats_list}')
     else:
-        FS_path = FS_root + f'FS_{cancer_types}_{event_type}_censor{int(365*censor_at/12)}.txt'
-    FS_df = pd.read_csv(FS_path, delimiter=';')
-    FS_df = FS_df.sort_values(['c_index', 'p_value'], ascending=[False, True])
-    best_feat_ind = FS_df.index[0]
-    feats_list = ast.literal_eval(FS_df['selected_features'][best_feat_ind])
+        FS_df = pd.read_csv(FS_path, delimiter=';')
+        FS_df = FS_df.sort_values(['c_index', 'p_value'], ascending=[False, True])
+        best_feat_ind = FS_df.index[0]
+        feats_list = ast.literal_eval(FS_df['selected_features'][best_feat_ind])
 
     # setting the results path
     save_dir = f'./{results_root}/CV_{cancer_types}/'

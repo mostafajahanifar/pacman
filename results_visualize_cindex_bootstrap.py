@@ -49,11 +49,16 @@ def plot_c_index(csv_files, sig_p_values):
     # Add significance asterisks
     for i, domain in enumerate(df_concat['domain'].unique()):
         sig_value = sig_p_values.get(domain, False)
-        if sig_value:
+        if sig_value is not None and sig_value < 0.05:
             max_value1 = df_concat[df_concat['domain'] == domain]['c_index'].max() * 0.98
             max_value2 = np.percentile(df_concat[df_concat['domain'] == domain]['c_index'].to_numpy(), 99)
             max_value = min(max_value1, max_value2) + 0.01
-            ax.text(i, max_value, "*", ha='center', va='bottom', color='black', fontsize=12)
+            astrisks = "*"
+            if sig_value <= 0.01:
+                astrisks = "**"
+            if sig_value <= 0.0001:
+                astrisks = "***"
+            ax.text(i, max_value, astrisks, ha='center', va='bottom', color='black', fontsize=10)
 
     # Set the title and labels
     plt.title('Boxplot of c-index values for each domain', fontsize=12)
@@ -88,11 +93,7 @@ for event_type in event_types:
             if file.startswith(km_path_pattern) and file.endswith('.csv'):
                 p_value = float(file.strip('.csv').split('pvalue')[-1])
                 break
-        if p_value is not None:
-            sig_p_value = p_value < 0.05
-            sig_p_values[''.join(cancer_type)] = sig_p_value
-        else:
-            sig_p_values[''.join(cancer_type)] = False
+        sig_p_values[''.join(cancer_type)] = p_value
 
     # Call the function
     fig = plot_c_index(csv_files, sig_p_values)

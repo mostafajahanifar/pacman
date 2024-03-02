@@ -164,7 +164,7 @@ if __name__ == '__main__':
     discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_clinical_merged.csv'
     discov_df = pd.read_csv(discov_val_feats_path)
     discov_df = discov_df.loc[discov_df['type'].isin(cancer_types)]
-    feats_list = pd.read_csv('noncorrolated_feature_list.csv', header=None)[0].to_list()
+    feats_list = pd.read_csv('noncorrolated_feature_list_2.csv', header=None)[0].to_list()
 
     print(f"Initial number of cases in this cancer type: {len(discov_df)}")
     

@@ -177,12 +177,12 @@ if __name__ == '__main__':
     # finding the list of best features
     # finding the list of best features
     if censor_at == -1:
-        FS_root = f'./FS_results/FS_results_NoCensoring/FS_{cancer_types}/'
+        FS_root = f'./FS_results_new/FS_results_NoCensoring/FS_{cancer_types}/'
         FS_path = FS_root + f'FS_{cancer_types}_{event_type}_censor-1.txt'
     else:    
-        FS_root = f'./FS_results/FS_results_{int(censor_at/12)}years/FS_{cancer_types}/'
+        FS_root = f'./FS_results_new/FS_results_{int(censor_at/12)}years/FS_{cancer_types}/'
         FS_path = FS_root + f'FS_{cancer_types}_{event_type}_censor{int(365*censor_at/12)}.txt'
-
+    print('Reading the best features from : ', FS_path)
     if args.baseline_experiment:
         feats_list = ['mit_hotspot_count']
         print(f'Running baseline experiments with {feats_list}')
