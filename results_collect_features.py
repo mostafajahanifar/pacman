@@ -1,10 +1,10 @@
 import pandas as pd
 from tqdm import tqdm
 
-censor_at = 60
-cv_experiment = f'CV_results_5years_median'
+censor_at = -1
+cv_experiment = f'experiments_newFS/CV_results_NoCensor_median'
 
-feats_list = pd.read_csv('noncorrolated_feature_list.csv', header=None)[0].to_list()
+feats_list = pd.read_csv('noncorrolated_feature_list_2.csv', header=None)[0].to_list()
 feat_appearance_dict = {'cancer_type': [], 'event_type': [], 'success': []}
 print(feats_list)
 for feat in feats_list:

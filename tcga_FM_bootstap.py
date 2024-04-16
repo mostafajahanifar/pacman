@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 import argparse
-
+from utils import featre_to_tick
 
 import numpy as np
 import pandas as pd
@@ -98,7 +98,7 @@ class SurvRanker:
         return toNumpy(self.model(x))
     
 
-BOOTSTRAP_RUNS = 10
+BOOTSTRAP_RUNS = 200
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -117,8 +117,8 @@ if __name__ == '__main__':
     results_root = args.results_root
 
 
-    # discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_clinical_merged.csv'
-    discov_val_feats_path = '/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_clinical_merged.csv'
+    discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_clinical_merged.csv'
+    # discov_val_feats_path = '/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_clinical_merged.csv'
     discov_df = pd.read_csv(discov_val_feats_path)
     discov_df = discov_df.loc[discov_df['type'].isin(cancer_types)]
     ff = pd.read_csv('noncorrolated_feature_list_2.csv', header=None)[0].to_list()
@@ -143,11 +143,6 @@ if __name__ == '__main__':
     
     save_dir = results_root + f"FM_{cancer_types}/"
     os.makedirs(save_dir, exist_ok=True)
-    save_name = f"FS_{cancer_types}_{event_type}_censor{censor_at}.txt"
-    fid = open(save_dir + save_name, 'w')
-    fid.write('selected_features;c_index;c_index_std;p_value;num_fails\n')
-    worst_score = 0
-    selected_features = []
 
     XX = np.array(discov_df[ff])
     TT = np.array(discov_df[time_col])
@@ -236,13 +231,14 @@ if __name__ == '__main__':
     ww = np.median(WW,axis=0)
     idx = np.argsort(-np.abs(ww));
     ffx =  np.array([' '.join(f.split('_')) for f in ff])
+    ffx = np.array([featre_to_tick(f) for f in ff])
 
     save_dir = f'./{results_root}/FM_{cancer_types}/'
     os.makedirs(save_dir, exist_ok=True)
     save_path = save_dir + f"FM_bootstrap_results_{cancer_types}_{event_type}_censor{censor_at}"
     results_df.to_csv(save_path+'.csv', index=None)
 
-    plt.figure(); plt.boxplot(WW[:,idx]);plt.xticks(list(np.arange(1,len(ff)+1)), np.array(ff)[idx]);plt.xticks(rotation=15);plt.title(''.join(cancer_types).upper())
+    plt.figure(); plt.boxplot(WW[:,idx]);plt.xticks(list(np.arange(1,len(ffx)+1)), np.array(ffx)[idx]);plt.xticks(rotation=90);plt.title(''.join(cancer_types).upper())
     plt.savefig(save_path+'_L1RM.png', dpi=600, bbox_inches = 'tight', pad_inches = 0)
     plt.savefig(save_path+'_L1RM.pdf', dpi=600, bbox_inches = 'tight', pad_inches = 0)
     plt.figure(); plt.violinplot(WW[:,idx[::-1]],showmedians=True,showextrema=True,vert=False,widths=0.9);plt.yticks(list(np.arange(1,len(ff)+1)), ffx[idx[::-1]]);plt.yticks(rotation=0);plt.title(''.join(cancer_types).upper());plt.xticks(fontsize=14);plt.yticks(fontsize=14);plt.xlabel('Weight',fontsize=16)

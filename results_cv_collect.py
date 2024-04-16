@@ -8,8 +8,8 @@ import numpy as np
 from utils import get_colors_dict
 
 
-censor_at = 60
-cv_experiment = f'baseline_results/CV_corrected_results_5years_median'
+censor_at = -1
+cv_experiment = f'experiments_newFS/CV_corrected_results_NoCensor_median'
 
 results_dict = {'censoring': [],
                 'event_type': [],

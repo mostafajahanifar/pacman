@@ -115,10 +115,11 @@ def plot_c_index(csv_files, sig_p_values, baseline_csv_files, baseline_sig_p_val
     return fig
 
 
-event_types = ['OS'] #  ['DFI', 'PFI', 'OS', 'DSS']
+event_types = ['DFI', 'PFI', 'OS', 'DSS']
 for event_type in event_types:
-    censor_at = 120
-    cv_experiment = f'CV_results_10years_median'
+    print(event_type)
+    censor_at = 60
+    cv_experiment = f'experiments_newFS/CV_results_5years_median'
     cancer_types = [["BLCA"], ["BRCA"], ["CESC"], ["COAD", "READ"], ["ESCA"], ["GBM"], ["HNSC"], ["KICH"], ["KIRC"], ["KIRP"], ["LGG"], ["LIHC"], ["LUAD"], ["LUSC"], ["OV"], ["PAAD"], ["SKCM"], ["STAD"], ["UCEC"]]
 
     csv_files = {}
@@ -128,7 +129,7 @@ for event_type in event_types:
     for cancer_type in cancer_types:
         csv_path = f"{cv_experiment}/CV_{cancer_type}/bootstrap_results_{cancer_type}_{event_type}_censor{censor_at}.csv"
         csv_files[''.join(cancer_type)] = csv_path
-        baseline_csv_files[''.join(cancer_type)] = "baseline_results/"+csv_path
+        baseline_csv_files[''.join(cancer_type)] = "baseline_results/"+csv_path.replace('experiments_newFS/','')
 
         # find the p-value related to this experiment
         directory = f"{cv_experiment.replace('CV_results', 'CV_corrected_results')}/CV_{cancer_type}_Corrected/" # cv_results_{cancer_type}_{event_type}_censor{censor_at}_*.csv"
@@ -143,7 +144,7 @@ for event_type in event_types:
         sig_p_values[''.join(cancer_type)] = p_value
 
         # find the p-value related to this experiment
-        directory = "baseline_results/" + f"{cv_experiment.replace('CV_results', 'CV_corrected_results')}/CV_{cancer_type}_Corrected/"
+        directory = "baseline_results/" + f"{cv_experiment.replace('experiments_newFS/','').replace('CV_results', 'CV_corrected_results')}/CV_{cancer_type}_Corrected/"
         km_path_pattern = f"cv_results_{cancer_type}_{event_type}_censor{censor_at}"
         # Walk through the directory
         p_value = None
@@ -159,6 +160,6 @@ for event_type in event_types:
     plt.title(f'Boxplot of c-index values, Event: {event_type}', fontsize=24)
     plt.ylim([-0.1,1.1])
     
-    save_path = 'mosi'##cv_experiment + f'/bootstrap_cindex_{event_type}_censor{censor_at}'
+    save_path = cv_experiment + f'/bootstrap_cindex_{event_type}_censor{censor_at}_withBaseline'
     fig.savefig(save_path+".png", dpi=600, bbox_inches = 'tight', pad_inches = 0)
     fig.savefig(save_path+".pdf", dpi=600, bbox_inches = 'tight', pad_inches = 0)

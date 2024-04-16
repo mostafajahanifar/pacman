@@ -13,3 +13,22 @@ def get_colors_dict():
     custom_colors = {domain: next(color_cycle) for domain in domain_list}
 
     return custom_colors
+
+def featre_to_tick(feat):
+    coversion_dict = {'cenEigen': 'EC',
+                      'wsi_count': 'WC',
+                      'clusterCoff': 'CL',
+                      'cenDegree': 'DC',
+                      'cenCloseness': 'CC',
+                      'nodeDegrees': 'ND',
+                      'cenHarmonic': 'HC',
+                      'hotspot_count': 'HS',
+                      }
+    feat_parts = feat.split('_')
+    if feat_parts[1]=='wsi':
+        feat_out = 'WSC'
+    elif feat_parts[1]=='hotspot':
+        feat_out = 'HSC'   
+    else:
+        feat_out = f'{feat_parts[-1]}({coversion_dict[feat_parts[1]]})'
+    return feat_out
