@@ -1,4 +1,6 @@
 "mit_wsi_count",
+"mit_hotspot_count",
+"mit_hotspot_score",
 "mit_nodeDegrees_mean",
 "mit_nodeDegrees_max",
 "mit_nodeDegrees_std",

@@ -133,14 +133,6 @@ if __name__ == '__main__':
     parser.add_argument('--cutoff_mode', default="optimal")
     parser.add_argument('--baseline_experiment', type=bool, default=False)
 
-    # parser.add_argument('--cancer_types', nargs='+', default=['UCEC'])
-    # parser.add_argument('--cancer_subset', default=None)
-    # parser.add_argument('--event_type', default='OS')
-    # parser.add_argument('--censor_at', type=int, default=120)
-    # parser.add_argument('--results_root', default='./CV_corrected_results_10years_median/')
-    # parser.add_argument('--splits_root', default="splits/5folds/") # 
-    # parser.add_argument('--cutoff_mode', default="median")
-
     args = parser.parse_args()
 
     cancer_types = args.cancer_types
@@ -154,7 +146,6 @@ if __name__ == '__main__':
     print(args)
 
     # defining the parameters for survival analysis
-    nfolds = [1,2,3] # ALAKI
     model_type = 'cox' ## 'rsf': for Random Survival Forest, 'cox': for Cox PH regression model
     save_plot = True
     rsf_rseed = 100 ## random seed for Random Survival Forest

@@ -15,11 +15,6 @@ def cross_validation_tcga_corrected(path_to_train_set, path_to_val_set, path_to_
     # train_data = train_data.dropna()
     train_data = train_data.fillna(0)
 
-    ##apply censoring. Commenting these out as we can use the uncensored data for training but for validation will need to censor
-    # if censor_at > 0:
-    #     train_data.loc[train_data[time_col] > censor_at, event_col] = 0
-    #     train_data.loc[train_data[time_col] > censor_at, time_col] = censor_at
-
     ##convert all events other than 1 to 0
     train_data.loc[train_data[event_col] > 1, event_col] = 0
 
