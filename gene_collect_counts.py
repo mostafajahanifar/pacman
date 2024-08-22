@@ -3,10 +3,10 @@ import pandas as pd
 from tqdm import tqdm
 
 # Paths to the link table, gene expression files, and HUGO gene symbol data
-link_table_path = "/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_rna_raw_count.tsv"
-expression_files_dir = "/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_rna_raw_count"
+link_table_path = "/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_rna_raw_count.tsv"
+expression_files_dir = "/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_rna_raw_count"
 hugo_table_path = "gene/data/data_mrna_seq_v2_rsem_zscores_ref_all_samples.txt"
-cache_dir = "/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/cache"
+cache_dir = "/home/u2070124/lsf_workspace/Data/Data/pancancer/cache"
 
 # Create cache directory if it doesn't exist
 if not os.path.exists(cache_dir):
@@ -87,7 +87,7 @@ for batch_file in batch_files:
 final_df = pd.concat(batch_dfs, axis=0, ignore_index=True)
 
 # Save the final DataFrame to a CSV file
-final_df.to_csv("/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/unified_gene_expression.csv", index=False)
+final_df.to_csv("/home/u2070124/lsf_workspace/Data/Data/pancancer/unified_gene_expression.csv", index=False)
 
 # Clean up the cache directory
 for batch_file in batch_files:
