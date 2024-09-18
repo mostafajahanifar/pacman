@@ -10,19 +10,19 @@ import matplotlib.pyplot as plt
 from utils import get_colors_dict, featre_to_tick
 import pickle
 
-save_root = 'explain_features/domain_classification_withPCPG_Balanced/'
+save_root = 'results_final/landscape/domain_classification_one-vs-rest/'
 os.makedirs(save_root, exist_ok=True)
 # discov_val_feats_path = '/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_clinical_merged.csv'
-discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_clinical_merged.csv'
+discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv'
 discov_df = pd.read_csv(discov_val_feats_path)
-feats_list = pd.read_csv('noncorrolated_feature_list_2.csv', header=None)[0].to_list()
-feats_list = [feat for feat in feats_list if feat not in ["mit_clusterCoff_max", "mit_hotspot_score"]]
+feats_list = pd.read_csv('noncorrolated_features_list_final.csv', header=None)[0].to_list()
+# feats_list = [feat for feat in feats_list if feat not in ["mit_clusterCoff_max", "mit_hotspot_score"]]
 
 df = discov_df[['type']+feats_list]
-invalid_cancers = ['MESO', 'UVM', 'TGCT', 'THYM', 'THCA', 'LAML', 'DLBC', 'UCS', 'SARC', 'CHOL', 'PRAD', 'ACC'] # with kept PCPG
+invalid_cancers = ['UVM', 'LAML'] #['MESO', 'UVM', 'TGCT', 'THYM', 'THCA', 'LAML', 'DLBC', 'UCS', 'SARC', 'CHOL', 'PRAD', 'ACC'] # with kept PCPG
 df = df[~df['type'].isin(invalid_cancers)]
-df['type'] = df['type'].replace('COAD', 'COADREAD')
-df['type'] = df['type'].replace('READ', 'COADREAD')
+df['type'] = df['type'].replace(['COAD', 'READ'], 'COADREAD')
+df['type'] = df['type'].replace(['GBM', 'LGG'], 'GBMLGG')
 domains = df['type'].unique()
 
 # Separate features and target
@@ -38,7 +38,7 @@ coefs_dict = {domain: {feat: [] for feat in feats_list} for domain in domains}
 scaler = StandardScaler()
 
 # Initialize the classifier
-clf = OneVsRestClassifier(svm.SVC(kernel='linear', probability=True, random_state=42, class_weight='balanced'), n_jobs=32, verbose=0)
+clf = OneVsRestClassifier(svm.SVC(kernel='linear', probability=True, random_state=42, class_weight='balanced'), n_jobs=16)
 
 # Number of bootstrap iterations
 n_iterations = 500
@@ -47,7 +47,8 @@ n_iterations = 500
 aucs_dict = {domain: [] for domain in domains}
 f1_dict = {domain: [] for domain in domains}
 
-
+print(feats_list)
+print(len(feats_list))
 for i in tqdm(range(n_iterations)):
 
     # Create train and test splits

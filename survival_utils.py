@@ -351,14 +351,7 @@ def extract_train_val_hazard_ratios(path_to_train_set, path_to_val_set, path_to_
 
     ##apply lymph node filtering i.e consider lymph node negative, or consider lymph node 0-3
     if subset == 'Endocrine':
-        train_data.drop(train_data[train_data['Endocrine Therapy'] != 1].index, inplace=True)
-        train_data.drop(train_data[train_data['Chemotherapy'] == 1].index, inplace=True)
-
-    ##these lines can be commented out (set 2 == 3 in the if) to train the model using lymph node 0-3 so that more event are included during training even though the validation might be done on LN- only.
-    if subset == 'Endocrine_LN0' and 2 == 2:
-        train_data.drop(train_data[train_data['Endocrine Therapy'] != 1].index, inplace=True)
-        train_data.drop(train_data[train_data['Chemotherapy'] == 1].index, inplace=True)
-        train_data.drop(train_data[train_data['Lymph Node status'] == 1].index, inplace=True)
+        pass
     
     feats_list_temp = []
     
@@ -408,7 +401,7 @@ def extract_train_val_hazard_ratios(path_to_train_set, path_to_val_set, path_to_
     #val_data = val_data.dropna()
     val_data = val_data.fillna(0)
 
-    ##apply censoring. 
+    # ##apply censoring. 
     if censor_at > 0:
         val_data.loc[val_data[time_col] > censor_at, event_col] = 0
         val_data.loc[val_data[time_col] > censor_at, time_col] = censor_at
@@ -418,19 +411,17 @@ def extract_train_val_hazard_ratios(path_to_train_set, path_to_val_set, path_to_
 
      ##apply lymph node filtering i.e consider lymph node negative, or consider lymph node 0-3
     if subset == 'Endocrine':
-        val_data.drop(val_data[val_data['Endocrine Therapy'] != 1].index, inplace=True)
-        val_data.drop(val_data[val_data['Chemotherapy'] == 1].index, inplace=True)
-
-    if subset == 'Endocrine_LN0':
-        val_data.drop(val_data[val_data['Endocrine Therapy'] != 1].index, inplace=True)
-        val_data.drop(val_data[val_data['Chemotherapy'] == 1].index, inplace=True)
-        val_data.drop(val_data[val_data['Lymph Node status'] == 1].index, inplace=True)
+        pass
     
     val_data_temp = val_data[feats_list_temp]
-
+    # print(val_data_temp)
     partial_hazard_test = cph_mva.predict_partial_hazard(val_data_temp)
     # c-index on the validation set
-    vcindex = concordance_index(val_data_temp[time_col], -partial_hazard_test, val_data_temp[event_col])
+    try:
+        vcindex = concordance_index(val_data_temp[time_col], -partial_hazard_test, val_data_temp[event_col])
+    except Exception as e:
+        print(f'Evaluation failed: {e}')
+        return -1
 
     # Use mean value in the discovery set as the cut-off value and divide subjects int the validation set into two groups
     upper = partial_hazard_test >= cutoff_value

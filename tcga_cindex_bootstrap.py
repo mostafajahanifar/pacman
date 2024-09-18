@@ -38,6 +38,7 @@ if __name__ == '__main__':
     results_root = args.results_root
     splits_root = args.splits_root
     cutoff_mode = args.cutoff_mode
+    print("Is baseline experiment?", args.baseline_experiment)
 
     print(args)
 
@@ -53,7 +54,7 @@ if __name__ == '__main__':
     
     # Raeading the data and filtering
     plots_save_path = 'all_feats_combi/KM_plots/' #ALAKI
-    discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_clinical_merged.csv'
+    discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv'
     # discov_val_feats_path = '/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_clinical_merged.csv'
     discov_df = pd.read_csv(discov_val_feats_path)
     discov_df = discov_df.loc[discov_df['type'].isin(cancer_types)]
@@ -64,11 +65,11 @@ if __name__ == '__main__':
 
     # finding the list of best features
     if censor_at == -1:
-        FS_root = f"./FS_results_new/FS_results_NoCensoring/FS_{cancer_types}/"
+        FS_root = f"results_final/feature_selection_from11_withAssort/FS_results_NoCensoring/FS_{cancer_types}/"
         FS_path = FS_root + f"FS_{cancer_types}_{event_type}_censor-1.txt"
     else:    
-        FS_root = f"./FS_results_new/FS_results_{int(censor_at/12)}years/FS_{cancer_types}/"
-        FS_path = FS_root + f"FS_{cancer_types}_{event_type}_censor{int(365*censor_at/12)}.txt"
+        FS_root = f"results_final/feature_selection_from11_withAssort/FS_results_{int(censor_at/12)}years/FS_{cancer_types}/"
+        FS_path = FS_root + f"FS_{cancer_types}_{event_type}_censor{censor_at}.txt"
     print('Reading the best features from : ', FS_path)
 
     if args.baseline_experiment:
@@ -79,9 +80,8 @@ if __name__ == '__main__':
         FS_df = FS_df.sort_values(['c_index', 'p_value'], ascending=[False, True])
         best_feat_ind = FS_df.index[0]
         feats_list = ast.literal_eval(FS_df['selected_features'][best_feat_ind])
-
     # setting the results path
-    save_dir = f'./{results_root}/CV_{cancer_types}/'
+    save_dir = f'{results_root}/CV_{cancer_types}/'
     os.makedirs(save_dir, exist_ok=True)
     save_path = save_dir + f"bootstrap_results_{cancer_types}_{event_type}_censor{censor_at}"
     if os.path.exists(save_path+".csv"):

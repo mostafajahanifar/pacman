@@ -34,38 +34,27 @@ def normalize_datasets(train_set, test_set, feats_list, norm_type='meanstd'):
     
     return train_set_normalized, test_set_normalized
 
-def find_uncorrolated_features(dataset, feats_list, threshold):
-    col_corr = set() # Set of all the names of deleted columns
-    dataset = dataset[feats_list]
-    corr_matrix = dataset.corr()
-    for i in range(len(corr_matrix.columns)):
-        for j in range(i):
-            if (corr_matrix.iloc[i, j] >= threshold) and (corr_matrix.columns[j] not in col_corr):
-                colname = corr_matrix.columns[i] # getting the name of column
-                col_corr.add(colname)
-                if colname in dataset.columns:
-                    del dataset[colname] # deleting the column from the dataset
-
-    return list(dataset.columns), col_corr
-
 ## bootstraping
 def bootstrap_cph(discov_df, EE, plots_save_path, feats_list, time_col, event_col, subset, nfolds, save_plot, model_type, censor_at, rsf_rseed, cutoff_mode, cutoff_point):
     rng = np.random.RandomState()
     c_indices = []
     p_values = []
     num_fails = 0
+    
     for run in range(BOOTSTRAP_RUNS):
         index_train = list(rng.choice(np.nonzero(EE==0)[0],size = len(EE)-np.sum(EE),replace=True))+list(rng.choice(np.nonzero(EE==1)[0],size = np.sum(EE),replace=True))
         index_test = list(set(range(len(EE))).difference(index_train))
         
         train_set = discov_df.iloc[index_train]
         test_set = discov_df.iloc[index_test]
+
+        if train_set[event_col].sum(axis=0)==0 or test_set[event_col].sum(axis=0)==0: # no event in the data
+            continue
         
         train_set.reset_index(inplace=True)
         test_set.reset_index(inplace=True)
-        
         train_set, test_set = normalize_datasets(train_set, test_set, feats_list, norm_type='meanstd')
-        
+
         output = extract_train_val_hazard_ratios(train_set, test_set, plots_save_path, feats_list, time_col, event_col, subset, censor_at, save_plot, cutoff_mode, cutoff_point)
         
         if output==-1 : #something went wrong, neglegct this run
@@ -161,10 +150,10 @@ if __name__ == '__main__':
     ##path where to save the plots etc
     plots_save_path = 'all_feats_combi/KM_plots/' #ALAKI
     
-    discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_clinical_merged.csv'
+    discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv'
     discov_df = pd.read_csv(discov_val_feats_path)
     discov_df = discov_df.loc[discov_df['type'].isin(cancer_types)]
-    feats_list = pd.read_csv('noncorrolated_feature_list_2.csv', header=None)[0].to_list()
+    feats_list = pd.read_csv('noncorrolated_features_list_final.csv', header=None)[0].to_list()
 
     print(f"Initial number of cases in this cancer type: {len(discov_df)}")
     
@@ -181,6 +170,13 @@ if __name__ == '__main__':
     discov_df = discov_df.dropna(subset=[event_col, time_col])
     discov_df[event_col] = discov_df[event_col].astype(int)
     discov_df[time_col] = discov_df[time_col].astype(int)
+    discov_df[time_col] = (discov_df[time_col]/30.4).astype(int)
+
+    # data censoring : NEW MOSI ... Now we censor both training and testing data
+    # if censor_at > 0:
+    #     print("CENSORING DATA")
+    #     discov_df.loc[discov_df[time_col] > censor_at, event_col] = 0
+    #     discov_df.loc[discov_df[time_col] > censor_at, time_col] = censor_at
 
     print(f"Number of cases in FS experiment after dropping NA: {len(discov_df)}")
     
@@ -202,7 +198,7 @@ if __name__ == '__main__':
                 feature_scores['c_index'].append(0)
                 feature_scores['c_index_std'].append(1000)
                 feature_scores['p_value'].append(1000)
-                feature_scores['num_fail'].append(BOOTSTRAP_RUNS+1)
+                feature_scores['num_fail'].append(BOOTSTRAP_RUNS+1+i)
                 continue
             temp_selected_features.append(f)
             try:
@@ -211,7 +207,8 @@ if __name__ == '__main__':
                 feature_scores['c_index_std'].append(c_index_std)
                 feature_scores['p_value'].append(p_value)
                 feature_scores['num_fail'].append(num_fail)
-            except:
+            except Exception as e:
+                print(f"* failed converge: {e}")
                 feature_scores['c_index'].append(0)
                 feature_scores['c_index_std'].append(1000)
                 feature_scores['p_value'].append(1000)
@@ -220,7 +217,7 @@ if __name__ == '__main__':
         score_df['scaled_c_index'] = (1-score_df.c_index_std) * score_df.c_index
         # score_df['final_score'] = (1-score_df.p_value) * score_df.c_index
         # score_df = score_df.sort_values(ranking_crits[i%2], ascending=[False, True, True])
-        score_df = score_df.sort_values(['scaled_c_index', 'p_value', 'num_fail'], ascending=[False, True, True])
+        score_df = score_df.sort_values(['c_index', 'p_value', 'num_fail'], ascending=[False, True, True])
         best_feat_ind = score_df.index[0]
         selected_features.append(feats_list[best_feat_ind])
         print(f'Best features at step {i+1}/{num_features} are: {selected_features}')

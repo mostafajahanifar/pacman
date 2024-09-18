@@ -16,12 +16,12 @@ import warnings
 warnings.filterwarnings("ignore")
 
 BOOTSTRAP_RUNS = 1000
-CV_REPEATS = 500
+CV_REPEATS = 1000
 
 font_size = 12
 fig_size = 5
 
-def cv_helper(discov_df, event_col, split_folder, km_plot=False, x_label="Months", y_label=None, add_counts=False, shuffle_data=False):
+def cv_helper(discov_df, event_col, split_folder, km_plot=False, x_label="Months", y_label=None, add_counts=False, shuffle_data=False, cutoff_mode="median"):
     # running the cross-validation here
     EE = discov_df[event_col].to_numpy()
     rng = np.random.RandomState()
@@ -85,7 +85,7 @@ def cv_helper(discov_df, event_col, split_folder, km_plot=False, x_label="Months
 
     if km_plot:
         
-        fig = plt.figure(figsize=(fig_size, fig_size-2)) ##adjust according to font size
+        fig = plt.figure(figsize=(fig_size-1.8, fig_size-2)) ##adjust according to font size
         ax = fig.add_subplot(111)
         ax.set_xlabel('', fontsize=font_size)
         ax.set_ylabel('', fontsize=font_size)
@@ -156,7 +156,7 @@ if __name__ == '__main__':
     
     # Raeading the data and filtering
     plots_save_path = 'all_feats_combi/KM_plots/' #ALAKI
-    discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_clinical_merged.csv'
+    discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv'
     # discov_val_feats_path = '/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_clinical_merged.csv'
     discov_df = pd.read_csv(discov_val_feats_path)
     discov_df = discov_df.loc[discov_df['type'].isin(cancer_types)]
@@ -166,13 +166,12 @@ if __name__ == '__main__':
     print(f"Number of cases in FS experiment after dropping NA: {len(discov_df)}")
 
     # finding the list of best features
-    # finding the list of best features
     if censor_at == -1:
-        FS_root = f'./FS_results_new/FS_results_NoCensoring/FS_{cancer_types}/'
-        FS_path = FS_root + f'FS_{cancer_types}_{event_type}_censor-1.txt'
+        FS_root = f"results_final/feature_selection_from10/FS_results_NoCensoring/FS_{cancer_types}/"
+        FS_path = FS_root + f"FS_{cancer_types}_{event_type}_censor-1.txt"
     else:    
-        FS_root = f'./FS_results_new/FS_results_{int(censor_at/12)}years/FS_{cancer_types}/'
-        FS_path = FS_root + f'FS_{cancer_types}_{event_type}_censor{int(365*censor_at/12)}.txt'
+        FS_root = f"results_final/feature_selection_from10/FS_results_{int(censor_at/12)}years/FS_{cancer_types}/"
+        FS_path = FS_root + f"FS_{cancer_types}_{event_type}_censor{censor_at}.txt"
     print('Reading the best features from : ', FS_path)
     if args.baseline_experiment:
         feats_list = ['mit_hotspot_count']
@@ -182,18 +181,18 @@ if __name__ == '__main__':
         FS_df = FS_df.sort_values(['c_index', 'p_value'], ascending=[False, True])
         best_feat_ind = FS_df.index[0]
         feats_list = ast.literal_eval(FS_df['selected_features'][best_feat_ind])
-    
+
     # setting the results path
     save_dir = f'./{results_root}/CV_{cancer_types}_Corrected/'
     os.makedirs(save_dir, exist_ok=True)
 
     if splits_root is not None:
-        split_folder = 'tcga_'+''.join(cancer_types).lower()
+        split_folder = ''.join(cancer_types).upper()
     else:
         split_folder = None
 
     # running the cross-validation for the real data
-    df_to_save, logrank_results, km_fig, km_fig_counts = cv_helper(discov_df, event_col, split_folder, km_plot=True, add_counts=True)
+    df_to_save, logrank_results, km_fig, km_fig_counts = cv_helper(discov_df, event_col, split_folder, km_plot=True, add_counts=True, cutoff_mode=cutoff_mode)
     ref_logrank_stat = logrank_results.test_statistic
 
     # now repeat the cross-validation several times and check the statistics to arrive the p-value
@@ -201,7 +200,7 @@ if __name__ == '__main__':
     num_valid_runs = 0
     for _ in tqdm(range(CV_REPEATS), desc='Corrcting p-value'):
         try:
-            _, logrank_results_repeats = cv_helper(discov_df, event_col, split_folder, km_plot=False, shuffle_data=True)
+            _, logrank_results_repeats = cv_helper(discov_df, event_col, split_folder, km_plot=False, shuffle_data=True, cutoff_mode="median")
         except:
             continue
         if logrank_results_repeats.test_statistic > ref_logrank_stat:
@@ -223,14 +222,15 @@ if __name__ == '__main__':
     ax.add_artist(AnchoredText(pvalue_txt, loc='lower left', frameon=False, prop=dict(size=font_size)))
     ax.set_ylabel(f"{event_type.upper()} Probability")
     ax.set_ylim(0,1)
+    ax.set_xlim(0,None)
     ax.set_title(''.join(cancer_types).upper(), fontsize=font_size+2)
     ax.spines[['right', 'top']].set_visible(False)
 
     # save the results
     save_path = save_dir + f"cv_results_{cancer_types}_{event_type}_censor{censor_at}_cindex{avr_cindex:.2}_pvalue{corrected_p_value:.3}"
     df_to_save.to_csv(save_path+".csv", index=None)
-    km_fig.savefig(save_path + '.png', dpi=600, bbox_inches = 'tight', pad_inches = 0)
-    km_fig.savefig(save_path + '.pdf', dpi=600, bbox_inches = 'tight', pad_inches = 0)
+    km_fig.savefig(save_path + '.png', dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
+    km_fig.savefig(save_path + '.pdf', dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
 
     # save the km figure with counts
     ax = km_fig_counts.axes[0]  # Get the ax object from fig
@@ -242,5 +242,5 @@ if __name__ == '__main__':
 
     # save the results
     save_path = save_dir + f"cv_results_{cancer_types}_{event_type}_censor{censor_at}_cindex{avr_cindex:.2}_pvalue{corrected_p_value:.3}_withCounts"
-    km_fig_counts.savefig(save_path + '.png', dpi=600, bbox_inches = 'tight', pad_inches = 0)
-    km_fig_counts.savefig(save_path + '.pdf', dpi=600, bbox_inches = 'tight', pad_inches = 0)
+    km_fig_counts.savefig(save_path + '.png', dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
+    km_fig_counts.savefig(save_path + '.pdf', dpi=600, bbox_inches = 'tight', pad_inches = 0.01)

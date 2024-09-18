@@ -16,22 +16,22 @@ parser.add_argument('-c', '--cohort')
 args = parser.parse_args()
 s = args.cohort
 
-root_mitosis_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/mitosis_cls_candidates_MIDOGnTUPACnBRACE/'
+root_mitosis_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/mitosis_cls_candidates_final(4classes)/'
 root_wsi_path = '/home/u2070124/web-public/tcga/'
 old_root_save_path = None# '/root/lsf_workspace/Data/Data/Brace_WSI_mitosis/features/' # this points to the path that previous feature extractions were done. In order to append new features to them
-root_save_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/features/' # this points to the new place to store feaures in. Can be the same as `old_root_save_path`
-root_graph_path = f'/home/u2070124/lsf_workspace/Data/Data/pancancer/graphs/{s}/' 
+root_save_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/features_final/' # this points to the new place to store feaures in. Can be the same as `old_root_save_path`
+root_graph_path = f'/home/u2070124/lsf_workspace/Data/Data/pancancer/graphs_final/' 
 os.makedirs(root_save_path, exist_ok=True)
 os.makedirs(root_graph_path, exist_ok=True)
 
-temp_save_path = f'/home/u2070124/lsf_workspace/Data/Data/pancancer/features/{s}/'
+temp_save_path = f'/home/u2070124/lsf_workspace/Data/Data/pancancer/features_final/{s}/'
 os.makedirs(temp_save_path, exist_ok=True) 
 
 
 set_path_mitosis = os.path.join(root_mitosis_path, s+'/')
 csv_paths = glob.glob(set_path_mitosis+'*.npy')
 wsi_paths = [os.path.join(root_wsi_path,case.split('/')[-1].strip('.npy')+'.svs') for case in csv_paths]
-graph_paths = [os.path.join(root_graph_path,case.split('/')[-1].strip('.npy')+'.gpickle') for case in csv_paths]
+graph_paths = [None for case in csv_paths] # [os.path.join(root_graph_path,case.split('/')[-1].strip('.npy')+'.json') for case in csv_paths]
 
 print(f'Working on set: {s} -- Total number of cases: {len(csv_paths)}')
 

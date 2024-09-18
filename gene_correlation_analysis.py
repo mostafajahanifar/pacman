@@ -12,9 +12,36 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
 
-ALL_CANCERS = ['BRCA', 'KIRC', 'UCEC', 'LGG', 'LUSC', 'LUAD', 'HNSC', 'COAD', 'SKCM',
-       'GBM', 'BLCA', 'STAD', 'LIHC', 'KIRP', 'CESC', 'PAAD', 'READ', 'ESCA',
-       'PCPG', 'KICH', 'OV']
+ALL_CANCERS = ['SARC',
+    'LIHC',
+    'THYM',
+    'ACC',
+    'BRCA',
+    'KICH',
+    'STAD',
+    'BLCA',
+    'THCA',
+    'GBMLGG',
+    'UCEC',
+    'LUAD',
+    'KIRC',
+    'KIRP',
+    'PAAD',
+    'CESC',
+    'PCPG',
+    'MESO',
+    'SKCM',
+    'PRAD',
+    'COADREAD',
+    'ESCA',
+    'LUSC',
+    'HNSC',
+    'OV',
+    'TGCT',
+    'CHOL',
+    'DLBC',
+    'UCS'
+ ]
 
 def plot_clustermap(corr_matrix, plvalue_matrix, mode, limit_row_cols=True, sig_threshold=0.05):
     # Set parameters based on the mode
@@ -285,24 +312,18 @@ def plot_rot_map(xrot, yrot, x_names, y_names):
     return fig
 
 selected_feats = [
-"mit_wsi_count",
-"mit_hotspot_count",
 "mit_nodeDegrees_mean",
-"mit_nodeDegrees_max",
-"mit_nodeDegrees_std",
+"mit_nodeDegrees_cv",
+"mit_nodeDegrees_per99",
 "mit_clusterCoff_mean",
 "mit_clusterCoff_std",
-"mit_clusterCoff_perc10",
-"mit_clusterCoff_perc80",
-"mit_cenDegree_mean",
-"mit_cenDegree_std",
-"mit_cenCloseness_max",
-"mit_cenEigen_mean",
-"mit_cenEigen_max",
-"mit_cenEigen_std",
+"mit_clusterCoff_per90",
 "mit_cenHarmonic_mean",
 "mit_cenHarmonic_std",
+"mit_cenHarmonic_per10",
+"mit_cenHarmonic_per99",
 ]
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Gene to mitosis features analysis')
@@ -311,13 +332,13 @@ if __name__ == '__main__':
     cancer_types = args.cancer_types
 
     #reading necessary data
-    # mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_clinical_merged.csv')
-    mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_clinical_merged.csv')
+    # mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv')
+    mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final.csv')
     signatures = pd.read_csv("gene/data/signatures.csv")
-    gene_expr_all = pd.read_csv("gene/data/selected_gene_data.csv")
-    canonical_save_root = "gene/canonical_corr/"
-    bicluster_save_root = "gene/bicluster_cross_corr/"
-    func_corr_save_root = "gene/func_heatmap_corr/"
+    gene_expr_all = pd.read_csv("gene/data/tcga_all_gene_expressions_normalized.csv")
+    canonical_save_root = "results_final/gene/canonical_corr/"
+    bicluster_save_root = "results_final/gene/bicluster_cross_corr/"
+    func_corr_save_root = "results_final/gene/func_heatmap_corr/"
     cancer_colors = get_colors_dict()
 
     if cancer_types != ["all"]:
@@ -386,7 +407,7 @@ if __name__ == '__main__':
         # add legend in case of pan-cancer scenario
         if cancer_types_name == "ALL":
             legend_elements = [mpatches.Patch(color=color, label=domain) for domain, color in cancer_colors.items()]
-            fig.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(0.9, 0.92), ncol=1)
+            fig.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(0.9, 0.92), ncol=2)
         fig.savefig(os.path.join(canon_save_path, f"cv_cca_pearson_{cancer_types_name}_{gene_group}.png"), dpi=600, bbox_inches = 'tight', pad_inches = 0)
         # fig = plot_comp_corr(X_r_vals, Y_r_vals, f"CCA-{gene_group}-Spearman corr.: {overall_spearmanr:.2f}")
         # fig.savefig(os.path.join(canon_save_path, f"cv_cca_spearman_{cancer_types_name}_{gene_group}.png"), dpi=600, bbox_inches = 'tight', pad_inches = 0)

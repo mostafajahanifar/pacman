@@ -11,19 +11,19 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pickle
 
-save_root = 'explain_features/domain_classification_one-vs-one/'
+save_root = 'results_final/landscape/domain_classification_one-vs-one/'
 os.makedirs(save_root, exist_ok=True)
-discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_clinical_merged.csv'
+discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv'
 discov_df = pd.read_csv(discov_val_feats_path)
-# discov_df = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_clinical_merged.csv')
-feats_list = pd.read_csv('noncorrolated_feature_list_2.csv', header=None)[0].to_list()
-feats_list = [feat for feat in feats_list if feat not in ["mit_clusterCoff_max", "mit_hotspot_score"]]
+# discov_df = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final.csv')
+feats_list = pd.read_csv('noncorrolated_features_list_final.csv', header=None)[0].to_list()
+# feats_list = [feat for feat in feats_list if feat not in ["mit_clusterCoff_max", "mit_hotspot_score"]]
 
 df = discov_df[['type'] + feats_list]
-invalid_cancers = ['MESO', 'UVM', 'TGCT', 'THYM', 'THCA', 'LAML', 'DLBC', 'UCS', 'SARC', 'CHOL', 'PRAD', 'ACC']  # with kept PCPG
+invalid_cancers = ['UVM', ] # ['MESO', 'TGCT', 'THYM', 'THCA', 'LAML', 'DLBC', 'UCS', 'SARC', 'CHOL', 'PRAD', 'ACC'] 
 df = df[~df['type'].isin(invalid_cancers)]
-df['type'] = df['type'].replace('COAD', 'COADREAD')
-df['type'] = df['type'].replace('READ', 'COADREAD')
+df['type'] = df['type'].replace(['COAD', 'READ'], 'COADREAD')
+df['type'] = df['type'].replace(['GBM', 'LGG'], 'GBMLGG')
 domains = df['type'].unique()
 
 # Separate features and target

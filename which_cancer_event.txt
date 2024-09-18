@@ -5,4 +5,4 @@ Cancer types for event PFI:
 BLCA, BRCA, CESC, COAD, ESCA, GBM, HNSC, KICH, KIRC, KIRP, LGG, LIHC, LUAD, LUSC, OV, PAAD, READ, SKCM, STAD, UCEC
 
 cancer types to avoid:
-PCPG (no event), DLBC (no slides), THYM (no slides), LAML (no slides), SARC (no slides), CHOL (no slides), ACC (not enough slides)
+PCPG (no event), DLBC (no slides), THYM (not enough evetns), LAML (no slides), CHOL (no slides), ACC (not enough slides)

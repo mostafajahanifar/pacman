@@ -1,6 +1,6 @@
 import pandas as pd
 
-path = '/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/Brace_WSI_mitosis/features_paper/'
+path = '/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/features_final/'
 
 # Load the csv file
 df = pd.read_csv(path + '_all_combined.csv')
@@ -14,7 +14,7 @@ def extract_case_brace(slide):
     return slide.split('_')[0]
 
 # Apply the function to the 'slide' column to create the 'case' column
-df['bcr_patient_barcode'] = df['slide'].apply(extract_case_brace)
+df['bcr_patient_barcode'] = df['slide'].apply(extract_case)
 
 # Sort the DataFrame by 'mit_wsi_count' in descending order and then drop duplicates based on 'case', keeping only the first (highest 'mit_wsi_count')
 df = df.sort_values('mit_wsi_count', ascending=False).drop_duplicates('bcr_patient_barcode').sort_index()

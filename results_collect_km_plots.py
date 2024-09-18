@@ -4,12 +4,12 @@ import pandas as pd
 import cv2
 from matplotlib.patches import Rectangle
 
-cv_experiment = 'CV_corrected_results_5years_median'
+cv_experiment = 'results_final/survival/CV_KM_10years_feat10sel_1000bs'
 
 df = pd.read_excel(f'{cv_experiment}/aggregated_results.xlsx')
 print(df)
 event_types = ['DFI', 'PFI', 'OS', 'DSS']
-cancer_types = [["BLCA"], ["BRCA"], ["CESC"], ["COAD", "READ"], ["ESCA"], ["GBM"], ["HNSC"], ["KICH"], ["KIRC"], ["KIRP"], ["LGG"], ["LIHC"], ["LUAD"], ["LUSC"], ["OV"], ["PAAD"], ["SKCM"], ["STAD"], ["UCEC"]]
+cancer_types = [["ACC"], ["BLCA"], ["BRCA"], ["CESC"], ["COAD", "READ"], ["ESCA"], ["GBM", "LGG"], ["HNSC"], ["KIRC"], ["KIRP"], ["LIHC"], ["LUAD"], ["LUSC"], ["OV"], ["PAAD"], ["SKCM"], ["STAD"], ["UCEC"], ["MESO"], ["PRAD"], ["SARC"], ["TGCT"], ["THCA"]]
 for event_type in event_types:
     fig = plt.figure(figsize=(20, 12))
     i = 1
@@ -23,7 +23,7 @@ for event_type in event_types:
         # Filter out the files that end with "_withCounts.png"
         # filtered_files = [f for f in all_files if f.startswith(f"cv_results_{cancer_type}_{event_type}") and f.endswith(".png") and not f.endswith("_withCounts.png")]
         filtered_files = [f for f in all_files if f.startswith(f"cv_results_{cancer_type}_{event_type}") and f.endswith("_withCounts.png")]
-        ax = plt.subplot(4, 5, i)
+        ax = plt.subplot(4, 8, i)
         try:
             km_plot = cv2.imread(exp_folder + filtered_files[0])[:,:,::-1]
             ax.imshow(km_plot)

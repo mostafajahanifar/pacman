@@ -106,7 +106,7 @@ if __name__ == '__main__':
     parser.add_argument('--cancer_subset', default=None)
     parser.add_argument('--event_type', required=True)
     parser.add_argument('--censor_at', type=int, default=-1)
-    parser.add_argument('--results_root', default='./FS_results/')
+    parser.add_argument('--results_root', default='./results_final/survival/FS_results/')
 
     args = parser.parse_args()
 
@@ -117,12 +117,12 @@ if __name__ == '__main__':
     results_root = args.results_root
 
 
-    discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_clinical_merged.csv'
+    discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv'
     # discov_val_feats_path = '/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_clinical_merged.csv'
     discov_df = pd.read_csv(discov_val_feats_path)
     discov_df = discov_df.loc[discov_df['type'].isin(cancer_types)]
-    ff = pd.read_csv('noncorrolated_feature_list_2.csv', header=None)[0].to_list()
-
+    ff = pd.read_csv('noncorrolated_features_list_final.csv', header=None)[0].to_list()
+    print("Using features: ", ff)
     print(f"Initial number of cases in this cancer type: {len(discov_df)}")
     
     nfolds = [1,2,3] # ALAKI
@@ -177,7 +177,6 @@ if __name__ == '__main__':
         MMS = StandardScaler().fit(X_train)
         X_train = MMS.transform(X_train)
         X_test = MMS.transform(X_test) 
-        
         if use_cph:
             
             dftr = pd.DataFrame(dict(zip(ff+[time_col, event_col],np.hstack((X_train,T_train[...,np.newaxis],E_train[...,np.newaxis])).T)))
@@ -185,7 +184,7 @@ if __name__ == '__main__':
             # dfall = dftr.append(dftt)
             dfall = pd.concat([dftr, dftt])
             try:
-                cph = CoxPHFitter(penalizer = 0.1, l1_ratio = 1.0).fit(dftr, time_col, event_col)#,robust = True        
+                cph = CoxPHFitter(penalizer = 0.001, l1_ratio = 0.5, baseline_estimation_method="breslow").fit(dftr, time_col, event_col)#,robust = True        
             except:
                 print('Failed to converge')
                 continue

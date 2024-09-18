@@ -85,10 +85,11 @@ def feature_extractor_tcga(mitosis_path, wsi_path, graph_path, feature_funcs, te
     # reading inputs
     # mitosis_candidates = pd.read_csv(mitosis_path)
     temp = np.load(mitosis_path)
-    mitosis_candidates = pd.DataFrame(temp, columns=['x','y','score'])
+    mitosis_candidates = pd.DataFrame(temp, columns=['x','y','type'])
+    
         
-    # filter mitosis candidates
-    mitosis_candidates = filter_candidates(mitosis_candidates, None, candidate_thresh=0.5, coord_ratio=1/MASK_RATIO, filter_by_mask=False)
+    # # filter mitosis candidates
+    # mitosis_candidates = filter_candidates(mitosis_candidates, None, candidate_thresh=0.5, coord_ratio=1/MASK_RATIO, filter_by_mask=False)
 
     # getting mpp if wsi_path is None
     if wsi_path is None:
