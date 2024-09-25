@@ -16,12 +16,17 @@ from sklearn.metrics import roc_auc_score
 from scipy.cluster.hierarchy import linkage, leaves_list
 
 save_root = "results_final/gene/methylation"
+df = pd.read_csv("gene/data/data_methylation.txt", sep="\t")
+df['NAME'] = df.apply(lambda row: row['ENTITY_STABLE_ID'] if pd.isna(row['NAME']) else row['NAME'], axis=1)
+id_to_name = df.set_index('ENTITY_STABLE_ID')['NAME'].to_dict()
+
+
 
 ALL_CANCERS = [
     'SARC',
     'LIHC',
     'THYM',
-    'ACC',
+    # 'ACC',
     'BRCA',
     'KICH',
     'STAD',
@@ -63,7 +68,7 @@ selected_feats = [
 ]
 
 ci = 0
-for i, cancer_type in enumerate(sorted(ALL_CANCERS)+["All"]):  # sorted(ALL_CANCERS)+["ALL"]
+for i, cancer_type in enumerate(["TGCT", "THYM"]):  # sorted(ALL_CANCERS)+["All"]
     try:
         print(f"Working on {cancer_type}")
         save_dir = f"{save_root}/{cancer_type.upper()}/"
@@ -87,7 +92,9 @@ for i, cancer_type in enumerate(sorted(ALL_CANCERS)+["All"]):  # sorted(ALL_CANC
 
 
         # Make correlation of non-significant mutations equal to zero
-        corr_r_matrix[corr_p_matrix > 0.01] = 0
+        corr_r_matrix_rank = corr_r_matrix.copy()
+        corr_r_matrix_rank[corr_r_matrix_rank > 0.01] = 0
+        corr_r_matrix_rank = corr_r_matrix_rank.T
         corr_r_matrix = corr_r_matrix.T
         corr_p_matrix = corr_p_matrix.T
 
@@ -96,10 +103,17 @@ for i, cancer_type in enumerate(sorted(ALL_CANCERS)+["All"]):  # sorted(ALL_CANC
 
         # Plot the top 20
         if len(corr_r_matrix) > 20:
-            aucs_sorted = corr_r_matrix.abs().max(axis=1).sort_values(ascending=False)
+            aucs_sorted = corr_r_matrix_rank.abs().max(axis=1).sort_values(ascending=False)
             max_ass = aucs_sorted.head(20).index
             corr_r_matrix = corr_r_matrix.loc[list(max_ass), :]
             annot_matrix = annot_matrix.loc[list(max_ass), :]  # Update annotation matrix for top 20
+            corr_r_matrix_rank = corr_r_matrix_rank.loc[list(max_ass), :]
+
+
+        # # renaming methylation codes with their names
+        corr_r_matrix_rank = corr_r_matrix_rank.rename(index=id_to_name)
+        corr_r_matrix = corr_r_matrix.rename(index=id_to_name)
+        annot_matrix = annot_matrix.rename(index=id_to_name)
 
         # Perform hierarchical clustering
         row_linkage = linkage(corr_r_matrix, method='ward')
@@ -110,6 +124,7 @@ for i, cancer_type in enumerate(sorted(ALL_CANCERS)+["All"]):  # sorted(ALL_CANC
         col_order = leaves_list(col_linkage)
 
         # Reorder the data matrix and annotation matrix
+        corr_r_matrix_rank_reordered = corr_r_matrix_rank.iloc[:, col_order].iloc[row_order, :]
         corr_r_matrix_reordered = corr_r_matrix.iloc[:, col_order].iloc[row_order, :]
         annot_matrix_reordered = annot_matrix.iloc[:, col_order].iloc[row_order, :]
 
@@ -130,7 +145,7 @@ for i, cancer_type in enumerate(sorted(ALL_CANCERS)+["All"]):  # sorted(ALL_CANC
         annot_matrix_reordered = annot_matrix_reordered[["HSC", "mean(ND)", "cv(ND)", "mean(CL)", "mean(HC)"]]  # Update annot matrix for top 4
 
         if len(corr_r_matrix_reordered) > top_n:
-            max_ass = corr_r_matrix_reordered.abs().max(axis=1).sort_values(ascending=False)
+            max_ass = corr_r_matrix_rank_reordered.abs().max(axis=1).sort_values(ascending=False)
             max_ass = max_ass[max_ass > 0.2]
             max_ass = max_ass.head(top_n).index
             corr_r_matrix_reordered = corr_r_matrix_reordered.loc[list(max_ass), :]
@@ -138,6 +153,7 @@ for i, cancer_type in enumerate(sorted(ALL_CANCERS)+["All"]):  # sorted(ALL_CANC
 
         # Calculate figure size dynamically based on the number of columns (heatmap cells width)
         n_cols = corr_r_matrix_reordered.shape[0]
+        print(n_cols)
         cell_size = 0.25  # size of each cell in inches
         fig_width = n_cols * cell_size
         fig_height = 1.2  # fixed height for consistency
@@ -146,6 +162,8 @@ for i, cancer_type in enumerate(sorted(ALL_CANCERS)+["All"]):  # sorted(ALL_CANC
         fig, ax_heatmap = plt.subplots(1, 1, figsize=(fig_width, fig_height))
 
         # Heatmap with annotations
+        print(corr_r_matrix_reordered.T)
+        print(annot_matrix_reordered.T)
         sns.heatmap(corr_r_matrix_reordered.T, cmap="coolwarm", vmin=-1, vmax=1, cbar=False,
                     linewidths=0.5, linecolor='gray', xticklabels=True, annot=annot_matrix_reordered.T, fmt='', annot_kws={"size": 10, "va": "center_baseline", "ha": "center"},
                     cbar_kws={'shrink': 0.5, 'label': r"Spearman's $\rho$"}, ax=ax_heatmap)
@@ -156,10 +174,14 @@ for i, cancer_type in enumerate(sorted(ALL_CANCERS)+["All"]):  # sorted(ALL_CANC
         if ci != 0:
             plt.yticks([])
 
-        plt.tight_layout()
-        fig.savefig(save_dir + f"mut_{cancer_type}_top5.pdf", dpi=300, bbox_inches='tight', pad_inches=0.01)
-        fig.savefig(save_dir + f"mut_{cancer_type}_top5.png", dpi=600, bbox_inches='tight', pad_inches=0.01)
+        # if cancer_type == "All":
+        #     plt.title("Pan-cancer")
+        # else:
+        #     plt.title(cancer_type)
 
+        # plt.tight_layout()
+        fig.savefig(save_dir + f"mut_{cancer_type}_top5.png", dpi=600, bbox_inches='tight', pad_inches=0.01)
+        # fig.savefig(save_dir + f"mut_{cancer_type}_top5.pdf", dpi=300, bbox_inches='tight', pad_inches=0.01)
         ci += 1
     except Exception as e:
         print(f"Error in {cancer_type}: {e}")

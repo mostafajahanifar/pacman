@@ -21,9 +21,40 @@ from sklearn.cluster import AgglomerativeClustering
 from lifelines import KaplanMeierFitter
 from lifelines.statistics import logrank_test
 from sklearn.cluster import KMeans
+from sklearn.mixture import GaussianMixture
 
+# Function to find the best separation point using Gaussian Mixture Model
+def find_cut_off(data, round_it=True):
+    gmm = GaussianMixture(n_components=2)
+    gmm.fit(data)
 
-save_root = "results_final/morphology/survival_WAF/"
+    # Get the means of the two Gaussian components
+    means = gmm.means_.flatten()
+    mean1, mean2 = np.sort(means)  # Sort means to ensure correct order
+
+    # Calculate the midpoint (best separation point)
+    separation_point = (mean1 + mean2) / 2
+
+    means = gmm.means_.flatten()
+    variances = gmm.covariances_.flatten()
+    mean1, mean2 = np.sort(means)
+    var1, var2 = variances[np.argsort(means)]
+
+    # Solve for the intersection of the two Gaussian distributions
+    a = 1/(2*var1) - 1/(2*var2)
+    b = mean2/var2 - mean1/var1
+    c = mean1**2 / (2*var1) - mean2**2 / (2*var2) - np.log(np.sqrt(var2/var1))
+
+    # The quadratic formula to find the intersection points
+    roots = np.roots([a, b, c])
+    intersection_point = roots[np.logical_and(roots > mean1, roots < mean2)][0] 
+
+    if round_it:
+        intersection_point = np.round(intersection_point)
+
+    return intersection_point
+
+save_root = "results_final/morphology/survival_3_WAF/"
 
 IMPORTANT_CANCERS = ["ACC", "BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "MESO", "PRAD", "SARC", "TGCT", "THCA", "KICH"]
 ALL_CANCERS = ['SARC',
@@ -65,8 +96,6 @@ selected_feats = [
 ]
 
 mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew_withAtypicalNew.csv')
-# mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type", "temperature"]+selected_feats]
-# mitosis_feats.columns = [featre_to_tick(col) if col not in ["bcr_patient_barcode", "type", "temperature"] else col for col in mitosis_feats.columns]
 mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
 mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
 
@@ -85,7 +114,7 @@ for cancer_type in  IMPORTANT_CANCERS + ["Pan-cancer"]: # ALL_CANCERS +
                 mitosis_feats_cancer = mitosis_feats[mitosis_feats["type"].isin(ALL_CANCERS)]
             else:
                 mitosis_feats_cancer = mitosis_feats[mitosis_feats["type"]==cancer_type]
-            # keep only mitotic-hot cases
+            # keep only mitotic-temp cases
             mitosis_feats_cancer = mitosis_feats_cancer[mitosis_feats_cancer["temperature"]==temp]
 
 
@@ -100,13 +129,19 @@ for cancer_type in  IMPORTANT_CANCERS + ["Pan-cancer"]: # ALL_CANCERS +
             mosi.loc[ids, event_time] = censor_at
             mosi.loc[ids, event_type] = 0
 
+            if mosi[event_type].sum(axis=0) < 2:
+                print(mosi[event_type].sum(axis=0) )
+                continue
 
-            feat_med = mosi[selected_feats].median().values[0]
-            print(feat_med)
-            if np.isnan(feat_med):
+            try:
+                cutoff = find_cut_off(mosi[selected_feats[0]].values.reshape(-1, 1), round_it=False)
+            except:
+                continue
+            # print(cutoff)
+            if np.isnan(cutoff):
                 print(f"Nan Med: {temp} -- {cancer_type}")
                 continue
-            mosi["labeled_cluster"] = mosi[selected_feats[0]].apply(lambda x: f"{temp} High" if x > feat_med else f"{temp} Low")
+            mosi["labeled_cluster"] = mosi[selected_feats[0]].apply(lambda x: f"{temp} High" if x > cutoff else f"{temp} Low")
     
             
             # Create a color palette
@@ -155,20 +190,6 @@ for cancer_type in  IMPORTANT_CANCERS + ["Pan-cancer"]: # ALL_CANCERS +
             ax.add_artist(AnchoredText(pvalue_txt, loc=pvalue_loc, frameon=False))
             # pval_text = ax.text(0.1, 0.05, pvalue_txt, transform=ax.transAxes)
             # adjust_text([pval_text])
-
-            # plt.xlim([0, 120])
-            # plt.xlabel('Time (Months)')
-            # plt.ylabel(f'{event_type} Probability')
-            # ax = plt.gca()
-            # ax.spines['top'].set_visible(False)
-            # ax.spines['right'].set_visible(False)
-            # # Position legend outside and to the right of the plot box
-            # plt.legend()
-            # ax.legend().set_visible(False)
-            # ax.set_title(cancer_type)
-            # ax.set_ylim([0, 1])
-            # plt.tight_layout()
-            # plt.savefig(f"{save_dir}/{temp}_km_{event_type}_{selected_feats}_censor{censor_at}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
 
             plt.xlim([0, 120])
             ax = plt.gca()

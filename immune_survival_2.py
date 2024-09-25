@@ -1,3 +1,5 @@
+"""This code also plots surival of immune hot and immune cold groups, however, it does it based on pre-calculated
+immune hot/cold groups, which are retrieved using Gaussian Mixture Model fitting on T Cells CD8"""
 import os, glob
 import pandas as pd
 import numpy as np
@@ -22,7 +24,7 @@ from lifelines.statistics import logrank_test
 from sklearn.cluster import KMeans
 
 
-save_root = "results_final/immune/survival/"
+save_root = "results_final/immune/survival_2/"
 
 IMPORTANT_CANCERS = ["ACC", "BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "MESO", "PRAD", "SARC", "TGCT", "THCA", "KICH"]
 ALL_CANCERS = ['SARC',
@@ -56,11 +58,11 @@ ALL_CANCERS = ['SARC',
     'UCS'
  ]
 
-
 # keep only columns that are related to mutations
-immune_df = pd.read_csv("gene/data/tcga_all_immune.csv")
+immune_df = pd.read_csv("gene/data/tcga_all_immune_new.csv")
 immune_df["TCGA Study"] = immune_df["TCGA Study"].replace(["COAD", "READ"], "COADREAD")
 immune_df["TCGA Study"] = immune_df["TCGA Study"].replace(["GBM", "LGG"], "GBMLGG")
+# immune_df = immune_df[["TCGA Participant Barcode", "TCGA Study", "T_Cells_CD8_temperature"]]
 
 selected_feats = [
 "mit_hotspot_count",
@@ -82,7 +84,7 @@ mitosis_feats.columns = [featre_to_tick(col) if col not in ["bcr_patient_barcode
 mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
 mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
 
-for cancer_type in IMPORTANT_CANCERS:# ["Pan-cancer"]: # ALL_CANCERS +
+for cancer_type in  IMPORTANT_CANCERS:# ["Pan-cancer"]: # IMPORTANT_CANCERS +
     print(cancer_type)
     if cancer_type == "Pan-cancer":
         mitosis_feats_cancer = mitosis_feats[mitosis_feats["type"].isin(ALL_CANCERS)]
@@ -90,6 +92,7 @@ for cancer_type in IMPORTANT_CANCERS:# ["Pan-cancer"]: # ALL_CANCERS +
     else:
         mitosis_feats_cancer = mitosis_feats[mitosis_feats["type"]==cancer_type]
         gene_exp_cancer = immune_df[immune_df["TCGA Study"]==cancer_type]
+
 
     # drop missing mutations
     gene_exp_cancer = gene_exp_cancer.dropna(axis=1, how="all")
@@ -113,7 +116,7 @@ for cancer_type in IMPORTANT_CANCERS:# ["Pan-cancer"]: # ALL_CANCERS +
     save_dir = f"{save_root}/{cancer_type}"
     os.makedirs(save_dir, exist_ok=True)
 
-    immune_feat =  "T Cells CD8" # "Lymphocytes" #
+    immune_feat =  "T_Cells_CD8_temperature"
     censor_at = 120
     for event_type in ["OS", "PFI", "DSS", "DFI"]:
         event_time = f"{event_type}.time"
@@ -124,7 +127,6 @@ for cancer_type in IMPORTANT_CANCERS:# ["Pan-cancer"]: # ALL_CANCERS +
             continue
         mosi = pd.concat([df1_common["temperature"], df2_common[[immune_feat, event_type, event_time]]], axis=1)
         mosi = mosi.dropna(axis=0, how="any")
-        mosi["temperature"] = mosi["temperature"].apply(lambda x: 1 if x == "Hot" else 0)
 
         # Reformat time events
         mosi = mosi.reset_index(drop=True)
@@ -134,51 +136,19 @@ for cancer_type in IMPORTANT_CANCERS:# ["Pan-cancer"]: # ALL_CANCERS +
         mosi.loc[ids, event_time] = censor_at
         mosi.loc[ids, event_type] = 0
 
-        # Standardize the features
-        mosi[["temperature", immune_feat]] = (mosi[["temperature", immune_feat]] - mosi[["temperature", immune_feat]].min()) / (mosi[["temperature", immune_feat]].max() - mosi[["temperature", immune_feat]].min())
-
-        df = mosi.copy()
-
-        # Split the DataFrame into two based on mitosis column
-        df_mitosis_1 = df[df['temperature'] == 1].copy()
-        df_mitosis_0 = df[df['temperature'] == 0].copy()
-
-        # Apply KMeans clustering to each subset based on the immune column
-        kmeans_1 = KMeans(n_clusters=2, random_state=0).fit(df_mitosis_1[[immune_feat]])
-        kmeans_0 = KMeans(n_clusters=2, random_state=0).fit(df_mitosis_0[[immune_feat]])
-
-        # Add cluster labels to the subsets
-        df_mitosis_1['immune_cluster'] = kmeans_1.labels_
-        df_mitosis_0['immune_cluster'] = kmeans_0.labels_
-
-        # Function to determine which cluster is "cold" and which is "hot"
-        def determine_cluster_labels(df, cluster_col, value_col):
-            cluster_means = df.groupby(cluster_col)[value_col].mean()
-            cold_cluster = cluster_means.idxmin()
-            hot_cluster = cluster_means.idxmax()
-            return {cold_cluster: 'Immune-Cold', hot_cluster: 'Immune-Hot'}
-
-        # Determine cluster labels for mitosis 1 and mitosis 0 subsets
-        cluster_labels_1 = determine_cluster_labels(df_mitosis_1, 'immune_cluster', immune_feat)
-        cluster_labels_0 = determine_cluster_labels(df_mitosis_0, 'immune_cluster', immune_feat)
-
-        # Apply the cluster labels to the subsets
-        df_mitosis_1['immune_label'] = df_mitosis_1['immune_cluster'].map(cluster_labels_1)
-        df_mitosis_0['immune_label'] = df_mitosis_0['immune_cluster'].map(cluster_labels_0)
-
-        # Function to label the clusters
         def label_cluster(row):
-            if row['temperature'] == 1:
-                return f'Mitotic-Hot, {row["immune_label"]}'
-            else:
-                return f'Mitotic-Cold, {row["immune_label"]}'
-
-        # Combine the subsets back into a single DataFrame
-        df_combined = pd.concat([df_mitosis_1, df_mitosis_0], ignore_index=True)
+            if row['temperature'] == "Hot" and row[immune_feat] == "Hot":
+                return 'Mitotic-Hot, Immune-Hot'
+            elif row['temperature'] == "Hot" and row[immune_feat] == "Cold":
+                return 'Mitotic-Hot, Immune-Cold'
+            elif row['temperature'] == "Cold" and row[immune_feat] == "Hot":
+                return 'Mitotic-Cold, Immune-Hot'
+            elif row['temperature'] == "Cold" and row[immune_feat] == "Cold":
+                return 'Mitotic-Cold, Immune-Cold'
 
         # Apply the labeling function to create the labeled_cluster column
-        df_combined['labeled_cluster'] = df_combined.apply(label_cluster, axis=1)
-        mosi = df_combined.sort_values(by='labeled_cluster')
+        mosi['labeled_cluster'] = mosi.apply(label_cluster, axis=1)
+        mosi = mosi.sort_values(by='labeled_cluster')
         # Create a color palette
         cluster_colors = {"Mitotic-Hot, Immune-Cold": "hotpink",
                         "Mitotic-Hot, Immune-Hot": "darkorchid",
@@ -188,10 +158,11 @@ for cancer_type in IMPORTANT_CANCERS:# ["Pan-cancer"]: # ALL_CANCERS +
 
         # Plot Kaplan-Meier survival plots
         kmf = KaplanMeierFitter()
-        plt.figure(figsize=(3, 3))
+        plt.figure(figsize=(2, 2))
 
         # Store Kaplan-Meier plots to add at risk counts later
-        for cluster in unique_clusters:
+        clusters = mosi['labeled_cluster'].unique()
+        for cluster in clusters:
             mask = mosi['labeled_cluster'] == cluster
             kmf.fit(mosi.loc[mask, event_time], event_observed=mosi.loc[mask, event_type], label=cluster)
             ax = kmf.plot(ci_show=False, color=cluster_colors[cluster])
@@ -213,13 +184,22 @@ for cancer_type in IMPORTANT_CANCERS:# ["Pan-cancer"]: # ALL_CANCERS +
             for cats, pval in p_values.items():
                 print(f"{cats[0]} vs {cats[1]}: p-value={pval:.02}", file=f)
 
-
         plt.xlim([0, 120])
-        plt.xlabel('Time (Months)')
-        plt.ylabel(f'{event_type} Probability')
         ax = plt.gca()
+        if cancer_type == "Pan-cancer":
+            plt.xlabel('Time (Months)')
+            plt.ylabel(f'{event_type} Probability')
+        else:
+            plt.xlabel('')
+            plt.ylabel('')
+            ax.set_xticklabels([])
+            ax.set_yticks([0, 0.5, 1])
+            ax.set_yticklabels([])
+            
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
+
+
         # Position legend outside and to the right of the plot box
         plt.legend(title=f"Immune: {immune_feat}")
         ax.legend().set_visible(False)
@@ -228,12 +208,19 @@ for cancer_type in IMPORTANT_CANCERS:# ["Pan-cancer"]: # ALL_CANCERS +
         plt.tight_layout()
         plt.savefig(f"{save_dir}/km_{event_type}_{immune_feat}_censor{censor_at}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
 
+
         # Map each row to a color
+        mosi["temperature"] = mosi["temperature"].apply(lambda x: 1 if x == "Hot" else 0)
+        mosi[immune_feat] = mosi[immune_feat].apply(lambda x: 1 if x == "Hot" else 0)
         row_colors = mosi['labeled_cluster'].map(cluster_colors)
-        row_colors = row_colors.rename("Group")
+        row_colors = row_colors.to_list()
         mosi = mosi.rename(columns={"temperature":"Mitosis", immune_feat:"Immune"})
         # Plot the clustermap
-        sns.clustermap(mosi[["Mitosis", "Immune"]], standard_scale=1, z_score=None, col_cluster=False, cmap="coolwarm",
-                    row_cluster=False, method='ward', figsize=(0.7, 3), cbar_pos=None, yticklabels=False, xticklabels=True,
+        g = sns.clustermap(mosi[["Mitosis", "Immune"]], standard_scale=1, z_score=None, col_cluster=False, cmap="coolwarm",
+                    row_cluster=False, method='ward', figsize=(0.6, 2), cbar_pos=None, yticklabels=False, xticklabels=False,
                     row_colors=row_colors, dendrogram_ratio=0, colors_ratio=0.2)
-        plt.savefig(f"{save_dir}/cbar_{immune_feat}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
+
+        # # Add vertical lines between columns using axvline
+        for i in range(1, mosi[["Mitosis", "Immune"]].shape[1]):  # Loop over columns
+            g.ax_heatmap.axvline(i, color='white', lw=0.2)  # Add vertical linecbar_{immune_feat}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
+        plt.savefig(f"{save_dir}/cbar_{event_type}_{immune_feat}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)

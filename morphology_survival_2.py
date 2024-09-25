@@ -23,15 +23,15 @@ from lifelines.statistics import logrank_test
 from sklearn.cluster import KMeans
 
 
-save_root = "results_final/morphology/survival_HAC/"
+save_root = "results_final/morphology/survival_WAF/"
 
 ALL_CANCERS = ['BRCA', 'GBMLGG', 'COADREAD', 'KIRC', 'UCEC', 'LUSC', 'LUAD', 'HNSC',
        'THCA', 'SKCM', 'BLCA', 'STAD', 'LIHC', 'PRAD', 'KIRP', 'CESC', 'SARC']
 
 selected_feats = [
-    "aty_hotspot_count",
+    # "aty_hotspot_count",
     # "aty_hotspot_ratio",
-    # "aty_wsi_ratio",
+    "aty_wsi_ratio",
 ]
 
 mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew_withAtypicalNew.csv')

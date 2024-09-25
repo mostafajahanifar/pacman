@@ -26,12 +26,23 @@ def featre_to_tick(feat):
                       'hotspot_count': 'HS',
                       }
     feat_parts = feat.split('_')
+    if feat_parts[0]=="aty": # "aty_wsi_ratio", "aty_hotspot_ratio", "aty_hotspot_count"
+        if feat_parts[1]=='wsi' and feat_parts[2]=='ratio' :
+            return "WAF"
+        elif feat_parts[1]=='wsi' and feat_parts[2]=='count' :
+            return "WAC"
+        elif feat_parts[1]=='hotspot' and feat_parts[2]=='ratio' :
+            return "HAF"
+        elif feat_parts[1]=='hotspot' and feat_parts[2]=='count' :
+            return "HAC"
     if feat_parts[1]=='wsi':
         feat_out = 'WSC'
-    elif feat_parts[1]=='hotspot':
+    elif feat_parts[1]=='hotspot' and feat_parts[2]=='count':
         feat_out = 'HSC'   
     elif feat_parts[1]=='assortCoeff':
         feat_out = 'Assort'
     else:
-        feat_out = f'{feat_parts[-1]}({coversion_dict[feat_parts[1]]})'
+        func_name = feat_parts[-1]
+        func_name = func_name.replace("perc", "per")
+        feat_out = f'{func_name}({coversion_dict[feat_parts[1]]})'
     return feat_out
