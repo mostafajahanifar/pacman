@@ -29,7 +29,7 @@ args = parser.parse_args()
 cancer_type = args.cancer
 
 # Reading the data
-mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew_withAtypicalNew.csv')
+mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew.csv')
 mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
 mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
 
@@ -38,7 +38,7 @@ print("Reading data is done")
 
 # for cancer_type in mitosis_feats["type"].unique():
 counts_org = pd.read_csv(f'gene/data/raw_gene_counts/{cancer_type}_gene_raw_counts.csv')
-save_root = f"results_final/gene/dseq_results/{cancer_type}/"
+save_root = f"results_final_all/gene/dseq_results/{cancer_type}/"
 os.makedirs(save_root, exist_ok=True)
 try:
     # filtering by cancer_type
@@ -131,6 +131,9 @@ try:
 
     df_sorted = sigs[(sigs["padj"]<pval_thresh) & (sigs["log2FoldChange"].abs()>log2fc_thresh)]
     df_sorted = df_sorted.sort_values(by='sorter', ascending=False)
+    
+    df_to_save = pd.concat([df_sorted.head(20), df_sorted.tail(20)], axis=0, ignore_index=True)
+    df_to_save.to_csv(save_root+"top_df_genes.csv", index=None)
 
     top_rows = df_sorted["Symbol"].head(num_ann).to_list()
     bottom_rows = df_sorted["Symbol"].tail(num_ann).to_list()

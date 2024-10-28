@@ -16,8 +16,11 @@ def extract_case_brace(slide):
 # Apply the function to the 'slide' column to create the 'case' column
 df['bcr_patient_barcode'] = df['slide'].apply(extract_case)
 
-# Sort the DataFrame by 'mit_wsi_count' in descending order and then drop duplicates based on 'case', keeping only the first (highest 'mit_wsi_count')
-df = df.sort_values('mit_wsi_count', ascending=False).drop_duplicates('bcr_patient_barcode').sort_index()
+# Sort by 'wsi_obj_power' (40 first), then by 'mit_wsi_count' (descending)
+df = df.sort_values(by=['wsi_obj_power', 'mit_wsi_count'], ascending=[False, False])
+
+# Drop duplicates based on 'bcr_patient_barcode', keeping the first occurrence (which has wsi_obj_power=40 if available, and the highest mit_wsi_count)
+df = df.drop_duplicates('bcr_patient_barcode').sort_index()
 
 # OPTIONAL:: Save the updated DataFrame to a new csv file
 df = df[['bcr_patient_barcode'] + [col for col in df.columns if col != 'bcr_patient_barcode']]

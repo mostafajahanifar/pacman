@@ -14,7 +14,7 @@ BINS_DICT = {
     'nodeDegrees': [0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 25.0],
     'clusterCoff': [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
     'cenHarmonic': [0, 0.5, 1, 5, 10, 20, 25.0, 50.0, 75.0, 100.0, 130.0],
-    'cenEigen': [0, 0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5],
+    # 'cenEigen': [0, 0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5],
             }
 
 
@@ -28,7 +28,7 @@ def create_network(mitosis_candidates, radius_threshold):
     coordinates = mitosis_candidates[['x', 'y']].to_numpy().astype(np.float32)
     types = mitosis_candidates['type'].to_numpy()  
     dist_matrix = distance.cdist(coordinates, coordinates, 'euclidean')
-    edge_index = np.argwhere(dist_matrix < radius_threshold)
+    edge_index = np.argwhere((dist_matrix < radius_threshold) & (dist_matrix > 0))  # Filter out self-edges
 
     # Create a new graph
     G = nx.Graph()
@@ -70,7 +70,6 @@ def sna_features_concise(mitosis_candidates, wsi_path, graph_path=None):
             feature_dict[f'mit_{sna}_perc10'] = -1
             feature_dict[f'mit_{sna}_perc90'] = -1
             feature_dict[f'mit_{sna}_perc99'] = -1
-        feature_dict[f'mit_assortCoeff'] = -1
         return feature_dict
 
     # check if there is no node, return all zeros features
@@ -90,7 +89,6 @@ def sna_features_concise(mitosis_candidates, wsi_path, graph_path=None):
             feature_dict[f'mit_{sna}_perc10'] = 0
             feature_dict[f'mit_{sna}_perc90'] = 0
             feature_dict[f'mit_{sna}_perc99'] = 0
-        feature_dict[f'mit_assortCoeff'] = 1 # similar to the scenario where everything is connected similarly
         return feature_dict
     
     _, wsi_mpp = wsi_check
@@ -113,12 +111,12 @@ def sna_features_concise(mitosis_candidates, wsi_path, graph_path=None):
     norm_factor = 1/(G.number_of_nodes()-1)
     sna_measures['cenHarmonic'] = [hc*norm_factor for hc in cenHarmonic.values()]
 
-    # Eigenvector Centrality
-    try:
-        cenEigen = centrality.eigenvector_centrality(G, max_iter=2000, tol=1e-02, nstart=None, weight=None)
-    except:
-        cenEigen = centrality.eigenvector_centrality(G, max_iter=3000, tol=1e-01, nstart=None, weight=None)
-    sna_measures['cenEigen'] = list(cenEigen.values())
+    # # Eigenvector Centrality
+    # try:
+    #     cenEigen = centrality.eigenvector_centrality(G, max_iter=2000, tol=1e-02, nstart=None, weight=None)
+    # except:
+    #     cenEigen = centrality.eigenvector_centrality(G, max_iter=3000, tol=1e-01, nstart=None, weight=None)
+    # sna_measures['cenEigen'] = list(cenEigen.values())
     
 
     # Extracting features and creating feature directory
@@ -132,15 +130,11 @@ def sna_features_concise(mitosis_candidates, wsi_path, graph_path=None):
         feature_dict[f'mit_{sna}_min'] = np.min(sna_measures[sna])
         feature_dict[f'mit_{sna}_med'] = np.median(sna_measures[sna])
         feature_dict[f'mit_{sna}_std'] = np.std(sna_measures[sna])
-        feature_dict[f'mit_{sna}_cv'] = np.std(sna_measures[sna])/np.mean(sna_measures[sna])
-        feature_dict[f'mit_{sna}_perc1'] = np.percentile(sna_measures[sna], 1)
-        feature_dict[f'mit_{sna}_perc10'] = np.percentile(sna_measures[sna], 10)
-        feature_dict[f'mit_{sna}_perc90'] = np.percentile(sna_measures[sna], 90)
-        feature_dict[f'mit_{sna}_perc99'] = np.percentile(sna_measures[sna], 99)
-    mit_assort = assortativity.degree_pearson_correlation_coefficient(G)
-    if math.isnan(mit_assort): # check if Assortativity is nan
-        mit_assort = 1 # usally happens when no connection is there, therefore considered 1 (like when there is only 1 connection between every pair)
-    feature_dict[f'mit_assortCoeff'] = mit_assort
+        feature_dict[f'mit_{sna}_cv'] = np.std(sna_measures[sna])/(np.mean(sna_measures[sna])+1)
+        feature_dict[f'mit_{sna}_per1'] = np.percentile(sna_measures[sna], 1)
+        feature_dict[f'mit_{sna}_per10'] = np.percentile(sna_measures[sna], 10)
+        feature_dict[f'mit_{sna}_per90'] = np.percentile(sna_measures[sna], 90)
+        feature_dict[f'mit_{sna}_per99'] = np.percentile(sna_measures[sna], 99)
 
     if graph_path is not None:
         # create the graph in geojson format
@@ -152,7 +146,7 @@ def sna_features_concise(mitosis_candidates, wsi_path, graph_path=None):
             'edge_index': np.array(G.edges()).T.tolist(),
             'coordinates': [data['pos'] for _, data in G.nodes(data=True)],
             'feats': node_features,
-            'feat_names': ['type', 'Node_Degree', 'Clustering_Coeff', 'Harmonic_Cen', 'Eigenvector_cen'],
+            'feat_names': ['type', 'Node_Degree', 'Clustering_Coeff', 'Harmonic_Cen'],
         }
         with open(graph_path, 'w') as f:
             json.dump(graph_dict, f)
@@ -165,7 +159,8 @@ def mitosis_hotspot(mitosis_candidates, wsi_path, graph_path=None):
         info_dict = wsi.info.as_dict()
         wsi_check = checking_wsi_info(info_dict)
     elif isinstance(wsi_path, dict):
-        wsi_check = 40, wsi_path['mpp']
+        out_mag = 20.0 if np.abs(wsi_path['mpp']-0.5)<np.abs(wsi_path['mpp']-0.25) else 40.0
+        wsi_check = out_mag, wsi_path['mpp']
         # set a default slide size 
         info_dict = {'slide_dimensions': (250000, 150000)}
     else:
@@ -174,6 +169,8 @@ def mitosis_hotspot(mitosis_candidates, wsi_path, graph_path=None):
     if wsi_check == -1:
         # writing default features to feature dictionary
         feature_dict = dict()
+        feature_dict['wsi_mpp'] = -1
+        feature_dict['wsi_obj_power'] = -1
         feature_dict['mit_wsi_count'] = -1
         feature_dict['mit_hotspot_count'] = -1
         feature_dict['mit_hotspot_score'] = -1
@@ -184,7 +181,7 @@ def mitosis_hotspot(mitosis_candidates, wsi_path, graph_path=None):
 
         return feature_dict
 
-    _, wsi_mpp = wsi_check
+    wsi_power, wsi_mpp = wsi_check
     # calculating the windows size in pixels and baseline resolution
     bs = int(np.round(1000*np.sqrt(HOTSPOT_WINDOW)/wsi_mpp)) # bound size in pixels
     stride = bs//6
@@ -196,6 +193,8 @@ def mitosis_hotspot(mitosis_candidates, wsi_path, graph_path=None):
     if cen_list.shape[0] == 0: # no mitosis
         # writing default features to feature dictionary
         feature_dict = dict()
+        feature_dict['wsi_mpp'] = wsi_mpp
+        feature_dict['wsi_obj_power'] = wsi_power
         feature_dict['mit_wsi_count'] = 0
         feature_dict['mit_hotspot_count'] = 0
         feature_dict['mit_hotspot_score'] = 0
@@ -233,6 +232,8 @@ def mitosis_hotspot(mitosis_candidates, wsi_path, graph_path=None):
 
     # writing features to feature dictionary
     feature_dict = dict()
+    feature_dict['wsi_mpp'] = wsi_mpp
+    feature_dict['wsi_obj_power'] = wsi_power
     feature_dict['mit_wsi_count'] = cen_list.shape[0]
     feature_dict['mit_hotspot_count'] = mitosis_count
     feature_dict['mit_hotspot_score'] = mitosis_score

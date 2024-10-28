@@ -38,15 +38,31 @@ def auc_association_matrix(X: pd.DataFrame, Y: pd.DataFrame) -> pd.DataFrame:
     
     return auc_matrix.astype(float).T
 
+def permutation_test(X, Y, auc_matrix, n_permutations=500):
+    n_rows, n_cols = Y.shape
+    auc_matrix_perm_all = []
+
+    for i in range(n_permutations):
+        Y_perm = Y.apply(np.random.permutation)  # Permute each column
+        auc_matrix_perm = auc_association_matrix(X, Y_perm)
+        auc_matrix_perm_all.append(auc_matrix_perm)
+    
+    auc_matrix_perm_all = np.array(auc_matrix_perm_all)
+    p_values = pd.DataFrame(index=auc_matrix.index, columns=auc_matrix.columns)
+    
+    for x_col in auc_matrix.columns:
+        for y_col in auc_matrix.index:
+            original_auc = auc_matrix.loc[y_col, x_col]
+            permuted_aucs = auc_matrix_perm_all[:, auc_matrix.index.get_loc(y_col), auc_matrix.columns.get_loc(x_col)]
+            p_val = np.mean(np.abs(permuted_aucs - 0.5) > np.abs(original_auc - 0.5))
+            p_values.at[y_col, x_col] = p_val
+
+    return p_values
+
 save_root = "results_final/gene/mutation"
 
 # keep only columns that are related to mutations
 gene_expr_all = pd.read_csv("gene/data/tcga_all_gene_mutations.csv")
-# sel_cols = [col for col in gene_expr_all.columns if "_mut" in col]
-# gene_expr_all = gene_expr_all[['type', 'case_id'] + sel_cols]
-# sel_cols = [col for col in gene_expr_all.columns if "_mut" in col]
-# col_rename_dict = {col: col.split("_")[0] for col in sel_cols}
-# gene_expr_all = gene_expr_all.rename(columns=col_rename_dict)
 
 ALL_CANCERS = ['SARC',
     'LIHC',
@@ -91,14 +107,14 @@ selected_feats = [
     "mit_cenHarmonic_per99",
     "mit_cenHarmonic_per10",
 ]
-# mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final.csv')
-mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv')
+mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final.csv')
+# mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv')
 mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type"]+selected_feats]
 mitosis_feats.columns = [featre_to_tick(col) if col not in ["bcr_patient_barcode", "type"] else col for col in mitosis_feats.columns]
 mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
 mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
 
-for ci, cancer_type in enumerate(sorted(gene_expr_all["type"].unique())):
+for ci, cancer_type in enumerate(["BRCA"]): #enumerate(sorted(gene_expr_all["type"].unique())):
     print(f"Working on {cancer_type}")
     save_dir = f"{save_root}/{cancer_type}/"
     os.makedirs(save_dir, exist_ok=True)

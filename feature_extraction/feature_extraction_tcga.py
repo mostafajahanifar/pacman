@@ -31,12 +31,12 @@ os.makedirs(temp_save_path, exist_ok=True)
 set_path_mitosis = os.path.join(root_mitosis_path, s+'/')
 csv_paths = glob.glob(set_path_mitosis+'*.npy')
 wsi_paths = [os.path.join(root_wsi_path,case.split('/')[-1].strip('.npy')+'.svs') for case in csv_paths]
-graph_paths = [None for case in csv_paths] # [os.path.join(root_graph_path,case.split('/')[-1].strip('.npy')+'.json') for case in csv_paths]
+graph_paths = [os.path.join(root_graph_path,case.split('/')[-1].strip('.npy')+'.json') for case in csv_paths] # [None for case in csv_paths] # 
 
 print(f'Working on set: {s} -- Total number of cases: {len(csv_paths)}')
 
 # prepare the multi_processing
-num_processes = 32
+num_processes = 16
 freeze_support() # For Windows support
 num_jobs = len(csv_paths)
 pool = Pool(processes=num_processes, initargs=(RLock(),), initializer=tqdm.set_lock)

@@ -4,28 +4,28 @@ import seaborn as sns
 import os
 from utils import featre_to_tick
 
-event_types = ['DFI', 'PFI', 'DSS', 'OS']
+event_types = ['DFI']# ['DFI', 'PFI', 'DSS', 'OS']
 features = [
 "mit_nodeDegrees_mean",
 "mit_nodeDegrees_cv",
-"mit_nodeDegrees_perc99",
+"mit_nodeDegrees_per99",
 "mit_clusterCoff_mean",
 "mit_clusterCoff_std",
-"mit_clusterCoff_perc90",
 "mit_cenHarmonic_mean",
 "mit_cenHarmonic_std",
-"mit_cenHarmonic_perc10",
-"mit_cenHarmonic_perc99",
+# "mit_clusterCoff_per90",
+# "mit_cenHarmonic_per10",
+# "mit_cenHarmonic_per99",
 ]
 
 all_cancer_types = [
     ["ACC"], ["BLCA"], ["BRCA"], ["CESC"], ["COAD", "READ"], ["ESCA"],
-    ["GBM", "LGG"], ["HNSC"], ["KIRC"], ["KIRP"], ["LIHC"], ["LUAD"],
+    ["GBM", "LGG"], ["HNSC"], ["KICH"], ["KIRC"], ["KIRP"], ["LIHC"], ["LUAD"],
     ["LUSC"], ["OV"], ["PAAD"], ["SKCM"], ["STAD"], ["UCEC"], ["MESO"],
-    ["PRAD"], ["SARC"], ["TGCT"], ["THCA"]
+    ["PRAD"], ["SARC"], ["TGCT"], ["THCA"],
 ]
 
-cv_experiment = 'results_final/survival/bootstrap_10years_feat10sel/'
+cv_experiment = 'results_final_all/survival/bootstrap_10years/'
 censor_at = 120
 
 for event_type in event_types:
@@ -100,10 +100,10 @@ for event_type in event_types:
     # put feature names
     for fi in range(num_features):
         axs[0,fi].set_title(featre_to_tick(features[fi]), rotation=0, fontsize=10)
-        axs[-1,fi].set_xlabel("HR", rotation=0, fontsize=10)
+        axs[-1,fi].set_xlabel("", rotation=0, fontsize=10)
         axs[-1, fi].set_xticks([0, 1, 3])
     
     plt.subplots_adjust(wspace=0.1, hspace=0)
     print("Completed")
     plt.savefig(f"{cv_experiment}/bootstrap_hr_{event_type}_censor{censor_at}.png", dpi=600, bbox_inches='tight', pad_inches=0.01)
-    plt.savefig(f"{cv_experiment}/bootstrap_hr_{event_type}_censor{censor_at}.pdf", dpi=600, bbox_inches='tight', pad_inches=0.01)
+    # plt.savefig(f"{cv_experiment}/bootstrap_hr_{event_type}_censor{censor_at}.pdf", dpi=600, bbox_inches='tight', pad_inches=0.01)

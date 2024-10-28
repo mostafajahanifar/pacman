@@ -15,16 +15,17 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import roc_auc_score
 from scipy.cluster.hierarchy import linkage, leaves_list
 from matplotlib.colors import Normalize
+from matplotlib.ticker import FuncFormatter
 
 import statsmodels.api as sm
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
 
 
 def calculate_annova_matrix(X, Y):
-    # Drop rows with NaN values in Y and align the indices
-    non_nan_indices = ~Y.isna().any(axis=1)
-    X = X.loc[non_nan_indices]
-    Y = Y.loc[non_nan_indices]
+    # # Drop rows with NaN values in Y and align the indices
+    # non_nan_indices = ~Y.isna().any(axis=1)
+    # X = X.loc[non_nan_indices]
+    # Y = Y.loc[non_nan_indices]
     
     # Initialize an empty DataFrame for the AUC association matrix
     f_matrix = pd.DataFrame(index=X.columns, columns=Y.columns)
@@ -33,9 +34,11 @@ def calculate_annova_matrix(X, Y):
     # Iterate over each combination of columns from X and Y
     for x_col in X.columns:
         for y_col in Y.columns:
+            df_no_na = pd.concat([X[x_col], Y[y_col]], axis=1)
+            df_no_na = df_no_na.dropna(axis=0, how="any")
             data = {
-                'phenotype': X[x_col].to_list(),
-                'CNV':       Y[y_col].to_list()
+                'phenotype': df_no_na[x_col].to_list(),
+                'CNV':       df_no_na[y_col].to_list()
             }
             df = pd.DataFrame(data)
             # Group data by CNV levels
@@ -47,7 +50,7 @@ def calculate_annova_matrix(X, Y):
     return f_matrix.astype(float), p_matrix.astype(float)
 
 
-save_root = "results_final/gene/cnv_anova"
+save_root = "results_final_all/gene/cnv_anova"
 
 # keep only columns that are related to mutations
 gene_expr_all = pd.read_csv("gene/data/tcga_all_gene_cnv.csv")
@@ -60,14 +63,14 @@ selected_feats = [
     "mit_hotspot_count",
     "mit_nodeDegrees_mean",
     "mit_nodeDegrees_cv",
-    "mit_nodeDegrees_per99",
+    # "mit_nodeDegrees_per99",
     "mit_clusterCoff_mean",
-    "mit_clusterCoff_std",
-    "mit_clusterCoff_per90",
+    # "mit_clusterCoff_std",
+    # "mit_clusterCoff_per90",
     "mit_cenHarmonic_mean",
-    "mit_cenHarmonic_std",
-    "mit_cenHarmonic_per99",
-    "mit_cenHarmonic_per10",
+    # "mit_cenHarmonic_std",
+    # "mit_cenHarmonic_per99",
+    # "mit_cenHarmonic_per10",
 ]
 # mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_clinical_merged.csv')
 mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv')
@@ -76,16 +79,17 @@ mitosis_feats.columns = [featre_to_tick(col) if col not in ["bcr_patient_barcode
 mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
 mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
 
-for ci, cancer_type in enumerate(sorted(gene_expr_all["type"].unique())):
+gene_exp_cancer = gene_expr_all.dropna(axis=1, how="all")
+
+for ci, cancer_type in enumerate(sorted(gene_expr_all["type"].unique())): #enumerate(["BRCA"]):#
     print(f"Working on {cancer_type}")
     save_dir = f"{save_root}/{cancer_type}/"
     os.makedirs(save_dir, exist_ok=True)
 
     mitosis_feats_cancer = mitosis_feats[mitosis_feats["type"]==cancer_type]
-    gene_exp_cancer = gene_expr_all[gene_expr_all["type"]==cancer_type]
+    # gene_exp_cancer = gene_expr_all[gene_expr_all["type"]==cancer_type]
 
-    # drop missing mutations
-    gene_exp_cancer = gene_exp_cancer.dropna(axis=1, how="all")
+    
 
     # Find the common case names between mitosis features and gene expressions
     common_cases = pd.Series(list(set(mitosis_feats_cancer['bcr_patient_barcode']).intersection(set(gene_exp_cancer['case_id']))))
@@ -260,7 +264,7 @@ for ci, cancer_type in enumerate(sorted(gene_expr_all["type"].unique())):
 
     # Get unique values for x and y
     unique_x = dot_data["x"].unique()
-    unique_y = dot_data["y"].unique()
+    unique_y = ["mean(ND)", "mean(CL)", "mean(HC)"] # dot_data["y"].unique()
 
     # Create a figure with a grid of subplots
     fig_height = 6*len(unique_x)/5
@@ -287,24 +291,52 @@ for ci, cancer_type in enumerate(sorted(gene_expr_all["type"].unique())):
                 ax.set_facecolor((1.0, 0.5, 0.5, 0.1))  # lightcoral with alpha 0.3
 
             # Perform Tukey's HSD test and plot results
-            tukey = pairwise_tukeyhsd(endog=X[y], groups=Y[x], alpha=0.05)
+            df_no_na = pd.concat([Y[x], X[y]], axis=1)
+            df_no_na = df_no_na.dropna(axis=0, how="any")
+            tukey = pairwise_tukeyhsd(endog=df_no_na[y], groups=df_no_na[x], alpha=0.05)
+            # tukey = pairwise_tukeyhsd(endog=X[y], groups=Y[x], alpha=0.05)
             tukey.plot_simultaneous(ax=ax, figsize=(fig_width, fig_height), comparison_name=0., xlabel=y)
 
             results_as_html = tukey.summary().as_html()
             results_df = pd.read_html(results_as_html, header=0, index_col=0)[0]
             results_df.to_csv(save_dir_tukey+f"tuckey_{y}_{x}.csv")
 
-            
+            def custom_format(x, pos):
+                # Round the number to two decimal places
+                x_rounded = round(x, 3)
+                # Format the number to two decimal places
+                label = '{0:.3f}'.format(x_rounded)
+                # Remove unnecessary trailing zeros and decimal points
+                label = label.rstrip('0').rstrip('.')
+                # Remove leading zero for numbers between -1 and 1 (excluding zero)
+                if 0 < abs(x_rounded) < 1:
+                    if label.startswith('-0'):
+                        label = '-' + label[2:]  # Remove '-0' and keep '-'
+                    elif label.startswith('0'):
+                        label = label[1:]  # Remove '0'
+                return label
+
             ax.set_title('')
             if y_idx != 0:
                 ax.set_yticklabels([])
             else:
                 ax.set_ylabel(x, fontsize=12)
+
+            # if y_idx == len(unique_y)-1:
+            ax.xaxis.set_major_formatter(FuncFormatter(custom_format))
             
             if x_idx == len(unique_x)-1:
                 ax.set_xlabel(y, fontsize=12)
+                # ax.xaxis.set_major_formatter(FuncFormatter(custom_format))
             else:
+                # ax.xaxis.set_major_formatter(FuncFormatter(custom_format))
                 ax.set_xlabel('')
+
+            
+
+            
+            # Assuming 'ax' is your matplotlib axis object
+            
 
     # Adjust layout to prevent overlap
     fig.subplots_adjust(wspace=0.2, hspace=0.2)

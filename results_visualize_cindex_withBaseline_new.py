@@ -5,7 +5,7 @@ import os
 import glob
 from pathlib import Path
 import numpy as np
-from scipy.stats import mannwhitneyu
+from scipy.stats import mannwhitneyu, wilcoxon
 from utils import get_colors_dict
 import textwrap
 
@@ -33,31 +33,34 @@ def plot_c_index(csv_files, baseline_csv_files):
         if os.path.exists(csv_file) and os.path.getsize(csv_file) > 0:
             # Read the csv file into a dataframe
             df = pd.read_csv(csv_file)
-            
-            # Check if the dataframe has at least 500 rows
-            if len(df) >= 800:
-                # Add a column for the domain
-                df['domain'] = domain
-                
-                # Append the dataframe to the list
-                dataframes.append(df)
-
-                # Check if the csv file exists and is not empty
-                if os.path.exists(baseline_csv_files[domain]) and os.path.getsize(baseline_csv_files[domain]) > 0:
-                    # Read the csv file into a dataframe
-                    df_baseline = pd.read_csv(baseline_csv_files[domain])
-                    
-                    # Check if the dataframe has at least 500 rows
-                    if len(df_baseline) >= 800:
-                        # Add a column for the domain
-                        df_baseline['domain'] = domain
-                        
-                        # Append the dataframe to the list
-                        baseline_dataframes.append(df_baseline)
-            else:
-                print(f"Skipping domain {domain} because it has less than 800 rows.")
         else:
             print(f"Skipping domain {domain} because the csv file does not exist or is empty.")
+            continue
+        # Check if the csv file exists and is not empty
+        if os.path.exists(baseline_csv_files[domain]) and os.path.getsize(baseline_csv_files[domain]) > 0:
+            # Read the csv file into a dataframe
+            df_baseline = pd.read_csv(baseline_csv_files[domain])
+        else:
+            print(f"Skipping domain {domain} because the baseline csv file does not exist or is empty.")
+            continue
+        # Check if the dataframe has at least 500 rows
+        if len(df) >= 500 and  len(df_baseline) >= 500:
+            # Add a column for the domain
+            df['domain'] = domain
+            print(domain, len(df['domain']))
+            
+            # Append the dataframe to the list
+            dataframes.append(df)
+
+
+            # Add a column for the domain
+            df_baseline['domain'] = domain
+            
+            # Append the dataframe to the list
+            baseline_dataframes.append(df_baseline)
+        else:
+            print(f"Skipping domain {domain} because it has less than 800 rows.")
+    
 
     # Concatenate all dataframes
     df_original = pd.concat(dataframes)
@@ -73,11 +76,11 @@ def plot_c_index(csv_files, baseline_csv_files):
     gap = 12
     width = 5 # 6
     for i, domain in enumerate(unique_domains):
-        print(domain)
         # Filter data for the current domain
         data1 = df_baseline[df_baseline['domain'] == domain]['c_index']
         data2 = df_original[df_original['domain'] == domain]['c_index']
-        print(len(data1), len(data1))
+        if len(data1)==0 or len(data2)==0:
+            continue
 
         # Plot boxplots at specified positions
         box2 = ax.boxplot(data2, positions=[i*gap + .53*width], widths=width, patch_artist=True, showfliers=False, boxprops=dict(facecolor=color_dict[domain]), medianprops=dict(color='black'))
@@ -138,11 +141,11 @@ def plot_c_index(csv_files, baseline_csv_files):
     return fig
 
 
-event_types = ['DFI', 'PFI', 'OS', 'DSS']
+event_types = ['DSS'] # ['DFI', 'PFI', 'OS', 'DSS']
 for event_type in event_types:
     print("**************",event_type)
     censor_at = 120
-    cv_experiment = f'results_final/survival/bootstrap_10years_feat10sel'
+    cv_experiment = f'results_final_all/survival/bootstrap_10years'
     cancer_types = [["ACC"], ["BLCA"], ["BRCA"], ["CESC"], ["COAD", "READ"], ["ESCA"], ["GBM", "LGG"], ["HNSC"], ["KIRC"], ["KIRP"], ["LIHC"], ["LUAD"], ["LUSC"], ["OV"], ["PAAD"], ["SKCM"], ["STAD"], ["UCEC"], ["MESO"], ["PRAD"], ["SARC"], ["TGCT"], ["THCA"], ["KICH"]]
 
     csv_files = {}
@@ -150,7 +153,7 @@ for event_type in event_types:
     for cancer_type in cancer_types:
         csv_path = f"{cv_experiment}/CV_{cancer_type}/bootstrap_results_{cancer_type}_{event_type}_censor{censor_at}.csv"
         csv_files[''.join(cancer_type)] = csv_path
-        baseline_csv_files[''.join(cancer_type)] = csv_path.replace('bootstrap_10years_feat10sel/', 'baseline_bootstrap_10years/')
+        baseline_csv_files[''.join(cancer_type)] = csv_path.replace('bootstrap_10years/', 'baseline_bootstrap_10years/')
 
     # Call the function
     fig = plot_c_index(csv_files, baseline_csv_files)
@@ -160,5 +163,5 @@ for event_type in event_types:
 
     save_path = cv_experiment + f'/bootstrap_cindex_{event_type}_censor{censor_at}_withBaseline'
     fig.savefig(save_path + ".png", dpi=600, bbox_inches='tight', pad_inches=0.01)
-    fig.savefig(save_path + ".pdf", dpi=600, bbox_inches='tight', pad_inches=0.01)
+    # fig.savefig(save_path + ".pdf", dpi=600, bbox_inches='tight', pad_inches=0.01)
 

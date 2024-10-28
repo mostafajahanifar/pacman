@@ -9,7 +9,7 @@ from utils import get_colors_dict
 
 
 censor_at = 120
-cv_experiment = f'results_final/survival/CV_KM_10years_feat10sel_1000bs'
+cv_experiment = f'results_final_all/survival/CV_KM_10years'
 
 results_dict = {'censoring': [],
                 'event_type': [],
@@ -22,7 +22,7 @@ results_dict = {'censoring': [],
 
 event_types = ['DFI', 'PFI', 'OS', 'DSS']
 for event_type in event_types:
-    cancer_types = [["ACC"], ["BLCA"], ["BRCA"], ["CESC"], ["COAD", "READ"], ["ESCA"], ["GBM", "LGG"], ["HNSC"], ["KIRC"], ["KIRP"], ["LIHC"], ["LUAD"], ["LUSC"], ["OV"], ["PAAD"], ["SKCM"], ["STAD"], ["UCEC"], ["MESO"], ["PRAD"], ["SARC"], ["TGCT"], ["THCA"]]
+    cancer_types = [["ACC"], ["BLCA"], ["BRCA"], ["CESC"], ["COAD", "READ"], ["ESCA"], ["GBM", "LGG"], ["HNSC"], ["KIRC"], ["KIRP"], ["KICH"], ["LIHC"], ["LUAD"], ["LUSC"], ["OV"], ["PAAD"], ["SKCM"], ["STAD"], ["UCEC"], ["MESO"], ["PRAD"], ["SARC"], ["TGCT"], ["THCA"]]
 
     csv_files = {}
     sig_p_values = {}

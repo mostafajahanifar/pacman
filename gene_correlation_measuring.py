@@ -103,13 +103,13 @@ if __name__ == '__main__':
     mitosis_feats.columns = [featre_to_tick(col) if col not in ["bcr_patient_barcode", "type"] else col for col in mitosis_feats.columns]
 
     gene_expr_all = pd.read_csv("gene/data/tcga_all_gene_methylation.csv")
-    # gene_expr_all["type"] = gene_expr_all["type"].replace(["COAD", "READ"], "COADREAD")
-    # gene_expr_all["type"] = gene_expr_all["type"].replace(["GBM", "LGG"], "GBMLGG")
+    gene_expr_all["type"] = gene_expr_all["type"].replace(["COAD", "READ"], "COADREAD")
+    gene_expr_all["type"] = gene_expr_all["type"].replace(["GBM", "LGG"], "GBMLGG")
 
-    for cancer_types in ["all"]+ALL_CANCERS:
+    for cancer_types in ["Pan-cancer"]+ALL_CANCERS:
         print(cancer_types)
         cancer_types = [cancer_types]
-        if cancer_types != ["all"]:
+        if cancer_types != ["Pan-cancer"]:
             print(f"Working on cancer types: {cancer_types}")
             mitosis_feats_cancer = mitosis_feats.loc[mitosis_feats['type'].isin(cancer_types)] # cancer types should be given in input argparse
         else:
@@ -117,19 +117,19 @@ if __name__ == '__main__':
             print("Working on ALL cancer types together")
 
         cancer_types_name = ''.join(cancer_types).upper()
-        save_root = f"results_final/gene/methylation/{cancer_types_name}/"
+        save_root = f"results_final_all/gene/methylation/{cancer_types_name}/"
         os.makedirs(save_root, exist_ok=True)
 
-        if cancer_types != ["all"]:
-            gene_expr = gene_expr_all[gene_expr_all["type"]==cancer_types_name]
-        else:
-            gene_expr = gene_expr_all.loc[gene_expr_all['type'].isin(ALL_CANCERS)]
+        # if cancer_types != ["Pan-cancer"]:
+        #     gene_expr = gene_expr_all[gene_expr_all["type"]==cancer_types_name]
+        # else:
+        #     gene_expr = gene_expr_all.loc[gene_expr_all['type'].isin(ALL_CANCERS)]
 
         # Find the common case names between mitosis features and gene expressions
-        common_cases = pd.Series(list(set(mitosis_feats_cancer['bcr_patient_barcode']).intersection(set(gene_expr['case_id']))))
+        common_cases = pd.Series(list(set(mitosis_feats_cancer['bcr_patient_barcode']).intersection(set(gene_expr_all['case_id']))))
         ## Keep only the rows with the common case names in both dataframes
         df1_common = mitosis_feats_cancer[mitosis_feats_cancer['bcr_patient_barcode'].isin(common_cases)]
-        df2_common = gene_expr[gene_expr['case_id'].isin(common_cases)]
+        df2_common = gene_expr_all[gene_expr_all['case_id'].isin(common_cases)]
         ## Sort the dataframes based on 'case_name'
         df1_common = df1_common.sort_values('bcr_patient_barcode')
         df2_common = df2_common.sort_values('case_id')

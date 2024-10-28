@@ -15,7 +15,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import roc_auc_score
 from scipy.cluster.hierarchy import linkage, leaves_list
 
-save_root = "results_final/gene/methylation"
+save_root = "results_final_all/gene/methylation"
 df = pd.read_csv("gene/data/data_methylation.txt", sep="\t")
 df['NAME'] = df.apply(lambda row: row['ENTITY_STABLE_ID'] if pd.isna(row['NAME']) else row['NAME'], axis=1)
 id_to_name = df.set_index('ENTITY_STABLE_ID')['NAME'].to_dict()
@@ -68,12 +68,12 @@ selected_feats = [
 ]
 
 ci = 0
-for i, cancer_type in enumerate(["TGCT", "THYM"]):  # sorted(ALL_CANCERS)+["All"]
+for i, cancer_type in enumerate(["Pan-cancer"]): # 
     try:
         print(f"Working on {cancer_type}")
         save_dir = f"{save_root}/{cancer_type.upper()}/"
 
-        if cancer_type == "All":
+        if cancer_type == "Pan-cancer":
             top_n = 10
         else:
             top_n = 4
@@ -93,7 +93,7 @@ for i, cancer_type in enumerate(["TGCT", "THYM"]):  # sorted(ALL_CANCERS)+["All"
 
         # Make correlation of non-significant mutations equal to zero
         corr_r_matrix_rank = corr_r_matrix.copy()
-        corr_r_matrix_rank[corr_r_matrix_rank > 0.01] = 0
+        corr_r_matrix_rank[corr_p_matrix > 0.05] = 0
         corr_r_matrix_rank = corr_r_matrix_rank.T
         corr_r_matrix = corr_r_matrix.T
         corr_p_matrix = corr_p_matrix.T
@@ -174,13 +174,13 @@ for i, cancer_type in enumerate(["TGCT", "THYM"]):  # sorted(ALL_CANCERS)+["All"
         if ci != 0:
             plt.yticks([])
 
-        # if cancer_type == "All":
-        #     plt.title("Pan-cancer")
-        # else:
-        #     plt.title(cancer_type)
+        if cancer_type == "All":
+            plt.title("Pan-cancer")
+        else:
+            plt.title(cancer_type)
 
         # plt.tight_layout()
-        fig.savefig(save_dir + f"mut_{cancer_type}_top5.png", dpi=600, bbox_inches='tight', pad_inches=0.01)
+        fig.savefig(save_dir + f"mut_{cancer_type}_top5.png", dpi=600, bbox_inches='tight', pad_inches=0.01, transparent=True)
         # fig.savefig(save_dir + f"mut_{cancer_type}_top5.pdf", dpi=300, bbox_inches='tight', pad_inches=0.01)
         ci += 1
     except Exception as e:

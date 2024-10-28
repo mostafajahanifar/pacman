@@ -145,16 +145,20 @@ if __name__ == '__main__':
     results_root = args.results_root
 
     # num selected features
-    num_features = 10
+    num_features = 5
+    only_40x = False
     
     ##path where to save the plots etc
     plots_save_path = 'all_feats_combi/KM_plots/' #ALAKI
     
     discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv'
     discov_df = pd.read_csv(discov_val_feats_path)
+    if only_40x:
+        discov_df = discov_df[discov_df["wsi_obj_power"]==40]
     discov_df = discov_df.loc[discov_df['type'].isin(cancer_types)]
     feats_list = pd.read_csv('noncorrolated_features_list_final.csv', header=None)[0].to_list()
 
+    print(f"Working on {cancer_types} : {event_type}")
     print(f"Initial number of cases in this cancer type: {len(discov_df)}")
     
     nfolds = [1,2,3] # ALAKI

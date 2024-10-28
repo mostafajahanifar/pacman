@@ -65,10 +65,10 @@ if __name__ == '__main__':
 
     # finding the list of best features
     if censor_at == -1:
-        FS_root = f"results_final/feature_selection_from11_withAssort/FS_results_NoCensoring/FS_{cancer_types}/"
+        FS_root = f"results_final_all/feature_selection/FS_results_NoCensoring/FS_{cancer_types}/"
         FS_path = FS_root + f"FS_{cancer_types}_{event_type}_censor-1.txt"
     else:    
-        FS_root = f"results_final/feature_selection_from11_withAssort/FS_results_{int(censor_at/12)}years/FS_{cancer_types}/"
+        FS_root = f"results_final_all/feature_selection/FS_results_{int(censor_at/12)}years/FS_{cancer_types}/"
         FS_path = FS_root + f"FS_{cancer_types}_{event_type}_censor{censor_at}.txt"
     print('Reading the best features from : ', FS_path)
 

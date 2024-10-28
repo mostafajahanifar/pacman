@@ -15,7 +15,7 @@ import argparse
 import warnings
 warnings.filterwarnings("ignore")
 
-BOOTSTRAP_RUNS = 1000
+BOOTSTRAP_RUNS = 500
 CV_REPEATS = 1000
 
 font_size = 12
@@ -153,12 +153,14 @@ if __name__ == '__main__':
     time_col = f'{event_type}.time'
     event_col = event_type
     subset = cancer_subset
-    
+    only_40x = False
     # Raeading the data and filtering
     plots_save_path = 'all_feats_combi/KM_plots/' #ALAKI
     discov_val_feats_path = '/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv'
     # discov_val_feats_path = '/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_clinical_merged.csv'
     discov_df = pd.read_csv(discov_val_feats_path)
+    if only_40x:
+        discov_df = discov_df[discov_df["wsi_obj_power"]==40]
     discov_df = discov_df.loc[discov_df['type'].isin(cancer_types)]
     discov_df = discov_df.dropna(subset=[event_col, time_col])
     discov_df[event_col] = discov_df[event_col].astype(int)
@@ -167,10 +169,10 @@ if __name__ == '__main__':
 
     # finding the list of best features
     if censor_at == -1:
-        FS_root = f"results_final/feature_selection_from10/FS_results_NoCensoring/FS_{cancer_types}/"
+        FS_root = f"results_final_all/feature_selection/FS_results_NoCensoring/FS_{cancer_types}/"
         FS_path = FS_root + f"FS_{cancer_types}_{event_type}_censor-1.txt"
     else:    
-        FS_root = f"results_final/feature_selection_from10/FS_results_{int(censor_at/12)}years/FS_{cancer_types}/"
+        FS_root = f"results_final_all/feature_selection/FS_results_{int(censor_at/12)}years/FS_{cancer_types}/"
         FS_path = FS_root + f"FS_{cancer_types}_{event_type}_censor{censor_at}.txt"
     print('Reading the best features from : ', FS_path)
     if args.baseline_experiment:

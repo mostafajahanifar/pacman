@@ -18,7 +18,7 @@ from scipy.stats import mannwhitneyu
 import itertools
 from statannotations.Annotator import Annotator
 
-save_root = "results_final/immune/distributions/"
+save_root = "results_final/immune/distributions_onlyProliferation/"
 # ALL_CANCERS = ['BRCA', 'KIRC', 'UCEC', 'LGG', 'LUSC', 'LUAD', 'HNSC', 'COADREAD', 'SKCM',
 #                 'GBM', 'BLCA', 'STAD', 'LIHC', 'KIRP', 'CESC', 'PAAD', 'ESCA', 'PCPG', 'KICH', 'OV']
 ALL_CANCERS = ['SARC',
@@ -59,17 +59,13 @@ immune_df["TCGA Study"] = immune_df["TCGA Study"].replace(["COAD", "READ"], "COA
 immune_df["TCGA Study"] = immune_df["TCGA Study"].replace(["GBM", "LGG"], "GBMLGG")
 
 selected_feats = [
-"mit_hotspot_count",
-"mit_nodeDegrees_mean",
-"mit_nodeDegrees_cv",
-"mit_nodeDegrees_per99",
-"mit_clusterCoff_mean",
-"mit_clusterCoff_std",
-"mit_clusterCoff_per90",
-"mit_cenHarmonic_mean",
-"mit_cenHarmonic_std",
-"mit_cenHarmonic_per10",
-"mit_cenHarmonic_per99",
+    "mit_hotspot_count",
+    "mit_nodeDegrees_mean",
+    "mit_nodeDegrees_cv",
+    "mit_clusterCoff_mean",
+    "mit_clusterCoff_std",
+    "mit_cenHarmonic_mean",
+    "mit_cenHarmonic_per10",
 ]
 
 mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew_withAtypicalNew.csv')
@@ -185,6 +181,8 @@ for cancer_type in sorted(["all"]+ALL_CANCERS):
                     "Leukocyte Fraction", "TIL Regional Fraction", "Wound Healing", "Macrophage Regulation",
                     "Lymphocyte Infiltration Signature Score", "IFN-gamma Response", "TGF-beta Response",
                     "BCR Evenness", "TCR Evenness", "Th1 Cells", "Th2 Cells", "Th17 Cells"]
+    
+    immune_feats = ["Proliferation",]
     for immune_feat in immune_feats:
         try:
             mosi = pd.concat([df1_common["temperature"], df2_common[immune_feat]], axis=1)
@@ -231,11 +229,13 @@ for cancer_type in sorted(["all"]+ALL_CANCERS):
             annotator.apply_and_annotate()
 
             ax.set_xlabel(None)
+            ax.set_ylim([-3, 3])
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)
 
             # Customize the plot
             plt.xticks(rotation=0)
+            plt.title(cancer_type)
             plt.tight_layout()
             plt.savefig(f"{save_dir}/immune_{immune_feat}_in_Hot-Cold.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
         except:

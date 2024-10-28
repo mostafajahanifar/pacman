@@ -4,12 +4,12 @@ import pandas as pd
 import cv2
 from matplotlib.patches import Rectangle
 
-cv_experiment = 'results_final/survival/CV_KM_10years_feat10sel_1000bs'
+cv_experiment = 'results_final_all/survival/CV_KM_10years'
 
 df = pd.read_excel(f'{cv_experiment}/aggregated_results.xlsx')
 print(df)
-event_types = ['PFI', 'DFI', 'OS', 'DSS']
-cancer_types = [["ACC"], ["BLCA"], ["BRCA"], ["CESC"], ["COAD", "READ"], ["ESCA"], ["GBM", "LGG"], ["HNSC"], ["KIRC"], ["KIRP"], ["LIHC"], ["LUAD"], ["LUSC"], ["OV"], ["PAAD"], ["SKCM"], ["STAD"], ["UCEC"], ["MESO"], ["PRAD"], ["SARC"], ["TGCT"], ["THCA"]]
+event_types = ['DFI'] # ['PFI', 'DFI', 'OS', 'DSS']
+cancer_types = [["ACC"], ["BLCA"], ["BRCA"], ["CESC"], ["COAD", "READ"], ["ESCA"], ["GBM", "LGG"], ["HNSC"], ["KIRC"], ["KIRP"], ["KICH"], ["LIHC"], ["LUAD"], ["LUSC"], ["OV"], ["PAAD"], ["SKCM"], ["STAD"], ["UCEC"], ["MESO"], ["PRAD"], ["SARC"], ["TGCT"], ["THCA"]]
 for event_type in event_types:
     
     i = 1
@@ -20,8 +20,8 @@ for event_type in event_types:
 
     for cancer_type in cancer_types:
         ctc = ''.join(cancer_type).upper()
-        # if ctc in ["THCA", "HNSC", "STAD"]: # remove these ones for selected_PFI
-        #     continue
+        if ctc not in ["ACC", "BRCA", "HNSC", "KIRP", "LUAD", "PAAD", "STAD", "PRAD", "SARC", "THCA", "UCEC", "KIRC"]: # remove these ones for selected_PFI
+            continue
         print(ctc, event_type)
         cindex_mean, cindex_std, pvalue = df.loc[(df['event_type'] == event_type) & (df['cancer_type'] == ctc), ['cindex_mean', 'cindex_std', 'pvalue']].values.tolist()[0]
         exp_folder = f"{cv_experiment}/CV_{cancer_type}_Corrected/"
@@ -46,5 +46,5 @@ for event_type in event_types:
 
     fig.subplots_adjust(hspace=0, wspace=0)
 
-    save_path=f"{cv_experiment}/aggregated_km_plots_{event_type}"
+    save_path=f"{cv_experiment}/aggregated_km_plots_{event_type}_selected"
     fig.savefig(save_path+'.png', dpi=600, bbox_inches='tight', pad_inches=0)
