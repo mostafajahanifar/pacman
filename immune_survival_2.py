@@ -24,7 +24,7 @@ from lifelines.statistics import logrank_test
 from sklearn.cluster import KMeans
 
 
-save_root = "results_final/immune/survival_2/"
+save_root = "results_final_all/immune/survival_2/"
 
 IMPORTANT_CANCERS = ["ACC", "BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "MESO", "PRAD", "SARC", "TGCT", "THCA", "KICH"]
 ALL_CANCERS = ['SARC',
@@ -57,6 +57,7 @@ ALL_CANCERS = ['SARC',
     'DLBC',
     'UCS'
  ]
+ALL_CANCERS = sorted(ALL_CANCERS)
 
 # keep only columns that are related to mutations
 immune_df = pd.read_csv("gene/data/tcga_all_immune_new.csv")
@@ -78,7 +79,7 @@ selected_feats = [
 "mit_cenHarmonic_per99",
 ]
 
-mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew_withAtypicalNew.csv')
+mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
 mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type", "temperature"]+selected_feats]
 mitosis_feats.columns = [featre_to_tick(col) if col not in ["bcr_patient_barcode", "type", "temperature"] else col for col in mitosis_feats.columns]
 mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
@@ -224,3 +225,20 @@ for cancer_type in  IMPORTANT_CANCERS:# ["Pan-cancer"]: # IMPORTANT_CANCERS +
         for i in range(1, mosi[["Mitosis", "Immune"]].shape[1]):  # Loop over columns
             g.ax_heatmap.axvline(i, color='white', lw=0.2)  # Add vertical linecbar_{immune_feat}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
         plt.savefig(f"{save_dir}/cbar_{event_type}_{immune_feat}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
+
+        if add_counts:
+            fig_copy = plt.figure(figsize=(fig_size, fig_size-2))
+            ax_copy = fig_copy.add_subplot(111)
+            ax_copy.set_xlabel('', fontsize=font_size)
+            ax_copy.set_ylabel('', fontsize=font_size)
+            ax_copy.tick_params(axis='x', labelsize=font_size)
+            ax_copy.tick_params(axis='y', labelsize=font_size)
+
+            # Initializing the KaplanMeierModel for each group
+            ax_copy = km_upper.fit(T_upper_test, event_observed=E_upper_test, label='high').plot_survival_function(ax=ax_copy, show_censors=True, censor_styles={'ms': 5}, color='r', ci_show=False, xlabel=x_label, ylabel=y_label)
+            ax_copy = km_lower.fit(T_lower_test, event_observed=E_lower_test, label='low').plot_survival_function(ax=ax_copy, show_censors=True, censor_styles={'ms': 5}, color='b', ci_show=False, xlabel=x_label, ylabel=y_label)
+
+            add_at_risk_counts(km_upper, km_lower, ax=ax_copy, fig=fig_copy, fontsize=int(font_size*1))
+            fig_copy.subplots_adjust(bottom=0.4)
+            fig_copy.subplots_adjust(left=0.2)
+            ax_copy.get_legend().remove()

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from lifelines import CoxPHFitter
 
-mit_temp = "all"
+mit_temp = "Cold"
 valid_cancer_for_event = {
     "PFI": ['GBMLGG', 'SKCM', 'LUAD', 'HNSC', 'LIHC', 'BLCA', 'COADREAD', 'KIRC', 'BRCA', 'LUSC', 'STAD', 'SARC', 'UCEC', 'PAAD', 'ESCA', 'OV', 'CESC', 'KIRP', 'MESO', 'TGCT', 'UCS', 'ACC', 'PCPG'],
     "OS": ['GBMLGG', 'HNSC', 'LUSC', 'SKCM', 'BLCA', 'KIRC', 'LUAD', 'BRCA', 'STAD', 'LIHC', 'COADREAD', 'PAAD', 'SARC', 'UCEC', 'OV', 'ESCA', 'CESC', 'MESO', 'UCS', 'ACC', 'DLBC'],
@@ -96,8 +96,8 @@ def plot_hr_with_ci_dotplots(results, selected_feats, feat_to_names, mode="selec
                         ax.text(hr + (ci_upper - hr) + 0.1, 0, '*', fontsize=12, color='black', verticalalignment='center')
 
                 # Customize the subplot appearance
-                if i == num_cancers - 1:
-                    ax.set_xlabel("HR")
+                # if i == num_cancers - 1:
+                #     ax.set_xlabel("HR")
                 if i == 0:
                     ax.set_title(feat_to_names[feat])
                 if j == 0:
@@ -130,23 +130,29 @@ def plot_hr_with_ci_dotplots(results, selected_feats, feat_to_names, mode="selec
 
         # Adjust layout and save the plot with mode in filename
         plt.subplots_adjust(wspace=0.1, hspace=0)
-        plt.savefig(f"results_final/morphology/univariate/hr_{mode}_{mit_temp}_{event_type}.png", dpi=600, bbox_inches='tight', pad_inches=0.01)
-        plt.savefig(f"results_final/morphology/univariate/hr_{mode}_{mit_temp}_{event_type}.pdf", dpi=600, bbox_inches='tight', pad_inches=0.01)
+        plt.savefig(f"results_final_all/morphology/univariate/hr_{mode}_{mit_temp}_{event_type}.png", dpi=600, bbox_inches='tight', pad_inches=0.01)
+        # plt.savefig(f"results_final_all/morphology/univariate/hr_{mode}_{mit_temp}_{event_type}.pdf", dpi=600, bbox_inches='tight', pad_inches=0.01)
+
+
 # Load your data
-df = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew_withAtypicalNew.csv')
+df = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
 
 selected_feats = [
-    "aty_hotspot_count",
-    "aty_hotspot_ratio",
+    "aty_ahotspot_count",
     "aty_wsi_ratio",
+    "aty_hotspot_count",
     "mit_hotspot_count",
+    # "aty_ahotspot_ratio",
+    # "aty_hotspot_ratio",
 ]
 
 feat_to_names = {
-    "aty_hotspot_count": "HAC",
-    "aty_hotspot_ratio": "HAF",
-    "aty_wsi_ratio": "WAF",
-    "mit_hotspot_count": "HSC"
+    "aty_ahotspot_count": "AMAH",
+    "aty_ahotspot_ratio": "AFAH", 
+    "aty_hotspot_ratio": "AFH",
+    "aty_hotspot_count": "AMH",
+    "aty_wsi_ratio": "AFW",
+    "mit_hotspot_count": "HSC",
 }
 
 # Run the univariate analysis and plot the hazard ratios with confidence intervals

@@ -4,7 +4,7 @@ import seaborn as sns
 from lifelines import CoxPHFitter
 from lifelines.utils import concordance_index
 
-mit_temp = "Hot"
+mit_temp = "Cold"
 valid_cancer_for_event = {
     "PFI":['GBMLGG', 'SKCM', 'LUAD', 'HNSC', 'LIHC', 'BLCA', 'COADREAD', 'KIRC',
        'BRCA', 'LUSC', 'STAD', 'SARC', 'UCEC', 'PAAD', 'ESCA', 'OV', 'CESC',
@@ -58,7 +58,9 @@ def analyze_univariate_c_index_by_event_and_cancer(df, selected_feats):
             print(f"{event_type} - {cancer}")
             # Filter the dataframe by cancer type
             cancer_df = df[df['type'] == cancer]
-            cancer_df = cancer_df[cancer_df["temperature"] == mit_temp]
+
+            if mit_temp in ["Hot", "Cold"]:
+                cancer_df = cancer_df[cancer_df["temperature"] == mit_temp]
 
             # Store c-indices for each feature in this cancer type
             c_indices = {}
@@ -87,41 +89,59 @@ def plot_c_index_barplots(results, selected_feats, feat_to_names):
         feature_names = [feat_to_names[feat] for feat in selected_feats]
         
         # For each cancer, we plot three bars (one for each feature)
-        bar_width = 0.2
+        bar_width = 0.4
         index = range(len(cancer_types))  # Position of ticks on the x-axis
         
         for i, feat in enumerate(selected_feats):
             c_indices = [cancers[cancer][feat] if feat in cancers[cancer] else None for cancer in cancer_types]
-            ax.bar([x + i * bar_width for x in index], c_indices, bar_width, label=feat_to_names[feat])
+            ax.bar([1*x + x + i * bar_width for x in index], c_indices, bar_width, label=feat_to_names[feat])
         
         # add a horinzontal line at y=0.5
         ax.axhline(y=0.5, color='lightgray', linestyle='--', zorder=0, linewidth=1)
         # Set labels, title, and legend
         # ax.set_xlabel('Cancer Type')
         ax.set_ylabel('C-Index')
-        ax.set_title(f'Mitotic-{mit_temp} ; {event_type} Event')
-        ax.set_xticks([x + bar_width for x in index])
-        ax.set_xticklabels(cancer_types, rotation=45, ha='right')
+        if mit_temp in ["Hot", "Cold"]:
+            ax.set_title(f'Mitotic-{mit_temp} ; {event_type} Event')
+        else:
+            ax.set_title(f'{event_type} Event')
+        ax.set_xticks([1*x+ x + bar_width for x in index])
+        ax.set_ylim([0.4, 0.8])
+        ax.set_xticklabels(cancer_types, rotation=90, ha='center')
         # ax.legend()
 
         # Show the plot
         # plt.tight_layout()
-        plt.savefig(f"results_final/morphology/univariate/cindex_{mit_temp}_{event_type}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
+        plt.savefig(f"results_final_all/morphology/univariate/cindex_{mit_temp}_{event_type}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
 
 
-df = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew_withAtypicalNew.csv')
+df = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
 
+# selected_feats = [
+#     "mit_hotspot_count",
+#     "aty_ahotspot_count",
+#     "aty_hotspot_ratio",
+#     "aty_wsi_ratio",
+# ]
 selected_feats = [
-    # "mit_hotspot_count",
-    "aty_hotspot_count",
-    "aty_hotspot_ratio",
+    "aty_ahotspot_count",
     "aty_wsi_ratio",
+    "aty_hotspot_count",
+    "mit_hotspot_count",
 ]
 
+color_codes = {
+    "aty_ahotspot_count": "skyblue",
+    "aty_wsi_ratio": "salmon",
+    "aty_hotspot_count": "orchid",
+    "mit_hotspot_count": "saddlebrown",
+}
+
 feat_to_names = {
-    "aty_hotspot_count": "Hotspot Atypical Count (HAC)",
-    "aty_hotspot_ratio": "Hotspot Atypical Fraction (HAF)",
-    "aty_wsi_ratio": "Slide Atypical Fraction (WAF)",
+    "aty_hotspot_count": "Atypical Mitosis in mitotic Hotspot (AMH)",
+    "aty_hotspot_ratio": "Atypical mitosis Fraction in mitotic Hotspot (AFH)",
+    "aty_ahotspot_count": "Atypical Mitosis in Atypical Hotspot (AMAH)",
+    "aty_wsi_ratio": "Atypical mitosis Fraction in WSI (AFW)",
     "mit_hotspot_count": "Hotspot Mitotic Count (HSC)"
     }
 

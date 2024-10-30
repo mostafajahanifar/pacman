@@ -1,23 +1,13 @@
-import os, glob
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from scipy import stats
 from utils import featre_to_tick, get_colors_dict
-import argparse
 from statsmodels.stats.multitest import multipletests
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import matplotlib.cm
-import seaborn as sns
 
-import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from scipy.stats import mannwhitneyu
-import itertools
-from statannotations.Annotator import Annotator
-from sklearn.preprocessing import MinMaxScaler
 from scipy import stats
 from statsmodels.stats.multitest import multipletests
 
@@ -80,7 +70,7 @@ ALL_CANCERS = ['SARC',
     'DLBC',
     'UCS'
  ]
-
+ALL_CANCERS = sorted(ALL_CANCERS)
 
 immune_feats = [
     # "IFN-gamma Response", "TGF-beta Response", "BCR Evenness","TCR Evenness",
@@ -97,20 +87,13 @@ immune_df["TCGA Study"] = immune_df["TCGA Study"].replace(["COAD", "READ"], "COA
 immune_df["TCGA Study"] = immune_df["TCGA Study"].replace(["GBM", "LGG"], "GBMLGG")
 
 selected_feats = [
-"mit_hotspot_count",
 "mit_nodeDegrees_mean",
-"mit_nodeDegrees_cv",
-"mit_nodeDegrees_per99",
-"mit_clusterCoff_mean",
-"mit_clusterCoff_std",
-"mit_clusterCoff_per90",
-"mit_cenHarmonic_mean",
-"mit_cenHarmonic_std",
-"mit_cenHarmonic_per10",
-"mit_cenHarmonic_per99",
+"aty_wsi_ratio",
+"aty_ahotspot_count",
 ]
+feat = "AMAH"
 
-mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew_withAtypicalNew.csv')
+mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
 mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type", "temperature"]+selected_feats]
 mitosis_feats.columns = [featre_to_tick(col) if col not in ["bcr_patient_barcode", "type", "temperature"] else col for col in mitosis_feats.columns]
 mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
@@ -153,15 +136,18 @@ for cancer_type in ALL_CANCERS + ["Mitotic Hot", "Mitotic Cold", "All"]:
     df1_common = df1_common.reset_index(drop=True)
     df2_common = df2_common.reset_index(drop=True)
 
-    X = df1_common[["mean(ND)"]]
+    X = df1_common[[feat]]
     Y = df2_common[immune_feats]
     corr_matrix, pvalue_matrix = calculate_corr_matrix(Y, X, method='spearman', pvalue_correction="bonferroni")
 
-    all_corr.append(corr_matrix.rename(columns={"mean(ND)": cancer_type}))
-    all_pval.append(pvalue_matrix.rename(columns={"mean(ND)": cancer_type}))
+    all_corr.append(corr_matrix.rename(columns={feat: cancer_type}))
+    all_pval.append(pvalue_matrix.rename(columns={feat: cancer_type}))
 
 corr_matrix = pd.concat(all_corr, axis=1)
 pvalue_matrix = pd.concat(all_pval, axis=1)
+corr_matrix.to_csv(f"results_final_all/immune/{feat}_correlations_r.csv")
+pvalue_matrix.to_csv(f"results_final_all/immune/{feat}_correlations_p.csv")
+
 annotations = pvalue_matrix.applymap(lambda x: '*' if x < 0.05 else '') 
 
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(6, 7.2), gridspec_kw={'width_ratios': [corr_matrix.shape[1]-3, 2, 1]})
@@ -198,5 +184,5 @@ for label in heatmap3.get_xticklabels():
     label.set_rotation(90)
 plt.subplots_adjust(wspace=0.03, hspace=0)
 
-plt.savefig("results_final/immune/correlations.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
-plt.savefig("results_final/immune/correlations.pdf", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
+plt.savefig(f"results_final_all/immune/{feat}_correlations.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
+# plt.savefig("results_final_all/immune/correlations.pdf", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)

@@ -28,13 +28,17 @@ def featre_to_tick(feat):
     feat_parts = feat.split('_')
     if feat_parts[0]=="aty": # "aty_wsi_ratio", "aty_hotspot_ratio", "aty_hotspot_count"
         if feat_parts[1]=='wsi' and feat_parts[2]=='ratio' :
-            return "WAF"
+            return "AFW"
         elif feat_parts[1]=='wsi' and feat_parts[2]=='count' :
-            return "WAC"
+            return "AMW"
         elif feat_parts[1]=='hotspot' and feat_parts[2]=='ratio' :
-            return "HAF"
+            return "AFH"
         elif feat_parts[1]=='hotspot' and feat_parts[2]=='count' :
-            return "HAC"
+            return "AMH"
+        elif feat_parts[1]=='ahotspot' and feat_parts[2]=='count' :
+            return "AMAH"
+        elif feat_parts[1]=='ahotspot' and feat_parts[2]=='ratio' :
+            return "AFAH"
     if feat_parts[1]=='wsi':
         feat_out = 'WSC'
     elif feat_parts[1]=='hotspot' and feat_parts[2]=='count':
