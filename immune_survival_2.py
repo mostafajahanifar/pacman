@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.cm
 import seaborn as sns
-
+from copy import deepcopy
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -20,11 +20,12 @@ import matplotlib.pyplot as plt
 
 from sklearn.cluster import AgglomerativeClustering
 from lifelines import KaplanMeierFitter
+from lifelines.plotting import add_at_risk_counts
 from lifelines.statistics import logrank_test
 from sklearn.cluster import KMeans
 
 
-save_root = "results_final_all/immune/survival_2/"
+save_root = "results_final_all/immune/survival2_immune_gmm/"
 
 IMPORTANT_CANCERS = ["ACC", "BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "MESO", "PRAD", "SARC", "TGCT", "THCA", "KICH"]
 ALL_CANCERS = ['SARC',
@@ -65,22 +66,22 @@ immune_df["TCGA Study"] = immune_df["TCGA Study"].replace(["COAD", "READ"], "COA
 immune_df["TCGA Study"] = immune_df["TCGA Study"].replace(["GBM", "LGG"], "GBMLGG")
 # immune_df = immune_df[["TCGA Participant Barcode", "TCGA Study", "T_Cells_CD8_temperature"]]
 
-selected_feats = [
-"mit_hotspot_count",
-"mit_nodeDegrees_mean",
-"mit_nodeDegrees_cv",
-"mit_nodeDegrees_per99",
-"mit_clusterCoff_mean",
-"mit_clusterCoff_std",
-"mit_clusterCoff_per90",
-"mit_cenHarmonic_mean",
-"mit_cenHarmonic_std",
-"mit_cenHarmonic_per10",
-"mit_cenHarmonic_per99",
-]
+# selected_feats = [
+# "mit_hotspot_count",
+# "mit_nodeDegrees_mean",
+# "mit_nodeDegrees_cv",
+# "mit_nodeDegrees_per99",
+# "mit_clusterCoff_mean",
+# "mit_clusterCoff_std",
+# "mit_clusterCoff_per90",
+# "mit_cenHarmonic_mean",
+# "mit_cenHarmonic_std",
+# "mit_cenHarmonic_per10",
+# "mit_cenHarmonic_per99",
+# ]
 
 mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
-mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type", "temperature"]+selected_feats]
+mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type", "temperature"]]
 mitosis_feats.columns = [featre_to_tick(col) if col not in ["bcr_patient_barcode", "type", "temperature"] else col for col in mitosis_feats.columns]
 mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
 mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
@@ -161,12 +162,16 @@ for cancer_type in  IMPORTANT_CANCERS:# ["Pan-cancer"]: # IMPORTANT_CANCERS +
         kmf = KaplanMeierFitter()
         plt.figure(figsize=(2, 2))
 
+        # Store each fitted Kaplan-Meier object in a list
+        kmf_fits = []
+
         # Store Kaplan-Meier plots to add at risk counts later
         clusters = mosi['labeled_cluster'].unique()
         for cluster in clusters:
             mask = mosi['labeled_cluster'] == cluster
             kmf.fit(mosi.loc[mask, event_time], event_observed=mosi.loc[mask, event_type], label=cluster)
             ax = kmf.plot(ci_show=False, color=cluster_colors[cluster])
+            kmf_fits.append(deepcopy(kmf))  # Append the fitted kmf object to the list to be used later
 
         # Perform pairwise log-rank tests and annotate p-values
         p_values = {}
@@ -209,6 +214,21 @@ for cancer_type in  IMPORTANT_CANCERS:# ["Pan-cancer"]: # IMPORTANT_CANCERS +
         plt.tight_layout()
         plt.savefig(f"{save_dir}/km_{event_type}_{immune_feat}_censor{censor_at}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
 
+        # add the risk counts and plot
+        ax.set_xticks([0, 25, 50, 75, 100])
+        ax.set_xticklabels([0, 25, 50, 75, 100])
+        ax.set_yticks([0, 0.5, 1])
+        plt.xlabel('Time (Months)')
+        add_at_risk_counts(*kmf_fits, ax=ax, rows_to_show=['At risk'], ypos=-.3)
+        
+        # at_risk_table = add_at_risk_counts(*kmf_fits, ax=ax)
+        # for text in at_risk_table.get_children():
+        #     if "At Risk" not in text.get_text():
+        #         text.set_visible(False)  # Hide all rows except the "At Risk" numbers
+        # plt.tight_layout()
+        plt.savefig(f"{save_dir}/risked_km_{event_type}_{immune_feat}_censor{censor_at}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
+
+        # add_at_risk_counts(km_upper, km_lower, ax=ax_copy, fig=fig_copy, fontsize=int(font_size*1))
 
         # Map each row to a color
         mosi["temperature"] = mosi["temperature"].apply(lambda x: 1 if x == "Hot" else 0)
@@ -226,19 +246,19 @@ for cancer_type in  IMPORTANT_CANCERS:# ["Pan-cancer"]: # IMPORTANT_CANCERS +
             g.ax_heatmap.axvline(i, color='white', lw=0.2)  # Add vertical linecbar_{immune_feat}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
         plt.savefig(f"{save_dir}/cbar_{event_type}_{immune_feat}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
 
-        if add_counts:
-            fig_copy = plt.figure(figsize=(fig_size, fig_size-2))
-            ax_copy = fig_copy.add_subplot(111)
-            ax_copy.set_xlabel('', fontsize=font_size)
-            ax_copy.set_ylabel('', fontsize=font_size)
-            ax_copy.tick_params(axis='x', labelsize=font_size)
-            ax_copy.tick_params(axis='y', labelsize=font_size)
+        # if add_counts:
+        #     fig_copy = plt.figure(figsize=(fig_size, fig_size-2))
+        #     ax_copy = fig_copy.add_subplot(111)
+        #     ax_copy.set_xlabel('', fontsize=font_size)
+        #     ax_copy.set_ylabel('', fontsize=font_size)
+        #     ax_copy.tick_params(axis='x', labelsize=font_size)
+        #     ax_copy.tick_params(axis='y', labelsize=font_size)
 
-            # Initializing the KaplanMeierModel for each group
-            ax_copy = km_upper.fit(T_upper_test, event_observed=E_upper_test, label='high').plot_survival_function(ax=ax_copy, show_censors=True, censor_styles={'ms': 5}, color='r', ci_show=False, xlabel=x_label, ylabel=y_label)
-            ax_copy = km_lower.fit(T_lower_test, event_observed=E_lower_test, label='low').plot_survival_function(ax=ax_copy, show_censors=True, censor_styles={'ms': 5}, color='b', ci_show=False, xlabel=x_label, ylabel=y_label)
+        #     # Initializing the KaplanMeierModel for each group
+        #     ax_copy = km_upper.fit(T_upper_test, event_observed=E_upper_test, label='high').plot_survival_function(ax=ax_copy, show_censors=True, censor_styles={'ms': 5}, color='r', ci_show=False, xlabel=x_label, ylabel=y_label)
+        #     ax_copy = km_lower.fit(T_lower_test, event_observed=E_lower_test, label='low').plot_survival_function(ax=ax_copy, show_censors=True, censor_styles={'ms': 5}, color='b', ci_show=False, xlabel=x_label, ylabel=y_label)
 
-            add_at_risk_counts(km_upper, km_lower, ax=ax_copy, fig=fig_copy, fontsize=int(font_size*1))
-            fig_copy.subplots_adjust(bottom=0.4)
-            fig_copy.subplots_adjust(left=0.2)
-            ax_copy.get_legend().remove()
+        #     add_at_risk_counts(km_upper, km_lower, ax=ax_copy, fig=fig_copy, fontsize=int(font_size*1))
+        #     fig_copy.subplots_adjust(bottom=0.4)
+        #     fig_copy.subplots_adjust(left=0.2)
+        #     ax_copy.get_legend().remove()

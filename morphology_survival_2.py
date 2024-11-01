@@ -1,29 +1,19 @@
-import os, glob
+import os
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler
-from scipy import stats
-from utils import featre_to_tick, get_colors_dict
-import argparse
-from statsmodels.stats.multitest import multipletests
+from utils import featre_to_tick
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import matplotlib.cm
-import seaborn as sns
-from matplotlib.offsetbox import AnchoredText
+
 
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from adjustText import adjust_text
 
-from sklearn.cluster import AgglomerativeClustering
 from lifelines import KaplanMeierFitter
 from lifelines.statistics import logrank_test
-from sklearn.cluster import KMeans
 
 
-save_root = "results_final/morphology/survival_WAF/"
+save_root = "results_final_all/morphology/survival_WAF/"
 
 ALL_CANCERS = ['BRCA', 'GBMLGG', 'COADREAD', 'KIRC', 'UCEC', 'LUSC', 'LUAD', 'HNSC',
        'THCA', 'SKCM', 'BLCA', 'STAD', 'LIHC', 'PRAD', 'KIRP', 'CESC', 'SARC']
@@ -34,11 +24,11 @@ selected_feats = [
     "aty_wsi_ratio",
 ]
 
-mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew_withAtypicalNew.csv')
+mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
 mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
 mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
 
-for cancer_type in  ALL_CANCERS + ["All"]: # 
+for cancer_type in  ALL_CANCERS + ["Pan-cancer"]: # 
     print(cancer_type)
     
     save_dir = f"{save_root}/{cancer_type}"
@@ -48,7 +38,7 @@ for cancer_type in  ALL_CANCERS + ["All"]: #
     for event_type in ["OS", "PFI", "DSS", "DFI"]:
         event_time = f"{event_type}.time"
 
-        if cancer_type == "All":
+        if cancer_type == "Pan-cancer":
             mitosis_feats_cancer = mitosis_feats
         else:
             mitosis_feats_cancer = mitosis_feats[mitosis_feats["type"] == cancer_type]

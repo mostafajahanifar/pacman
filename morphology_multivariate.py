@@ -1,7 +1,12 @@
+import os
 import pandas as pd
 from lifelines import CoxPHFitter
 
-save_root = "results_final/morphology/"
+mit_temp = "all"
+
+save_root = "results_final_all/morphology/multivariate/"
+os.makedirs(save_root, exist_ok=True)
+
 
 valid_cancer_for_event = {
     "PFI":['GBMLGG', 'SKCM', 'LUAD', 'HNSC', 'LIHC', 'BLCA', 'COADREAD', 'KIRC',
@@ -44,7 +49,7 @@ def cox_multivariate_analysis(df, selected_feats, event_col, time_col):
 # Main function to perform analysis across different event types and cancers
 def analyze_survival_by_event_and_cancer(df, selected_feats):
     results = {}
-    event_types = ["OS", "PFI", "DSS", "DFI"]  # Define event types
+    event_types = ["PFI", "DSS", "OS", "DFI"]  # Define event types
 
     for event_type in event_types:
         # For each event type, prepare the event and event time columns
@@ -58,7 +63,8 @@ def analyze_survival_by_event_and_cancer(df, selected_feats):
             print(f"{event_type} - {cancer}")
             # Filter the dataframe by cancer type
             cancer_df = df[df['type'] == cancer]
-            cancer_df = cancer_df[cancer_df["temperature"]=="Hot"]
+            if mit_temp in ["Hot", "Cold"]:
+                cancer_df = cancer_df[cancer_df["temperature"]=="Hot"]
 
             try:
                 # Perform multivariate analysis using Cox proportional hazards
@@ -74,7 +80,7 @@ def analyze_survival_by_event_and_cancer(df, selected_feats):
 # Function to save the results into an Excel file with proper formatting
 def save_results_to_excel(results):
     # Create an Excel writer object
-    with pd.ExcelWriter(save_root+'multivariate_survival_analysis_results_mitoticHot.xlsx', engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(save_root+f'multivariate_analysis_results_{mit_temp}_AMH+HSC.xlsx', engine='xlsxwriter') as writer:
         for event_type, cancers in results.items():
             # Create a new sheet for each event type
             sheet_name = event_type
@@ -103,21 +109,21 @@ def save_results_to_excel(results):
             worksheet.set_column('B:D', 15)  # Set width for hazard ratio and CI columns
             worksheet.set_column('E:E', 10)  # Set width for p-value column
 
-df = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew_withAtypicalNew.csv')
+df = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
 
 selected_feats = [
-    # "mit_hotspot_count",
+    "mit_hotspot_count",
+    # "aty_ahotspot_count",
+    # "aty_wsi_ratio",
     "aty_hotspot_count",
-    "aty_hotspot_ratio",
-    "aty_wsi_ratio",
 ]
 
 feat_to_names = {
-    "aty_hotspot_count": "Hotspot Atypical Count (HAC)",
-    "aty_hotspot_ratio": "Hotspot Atypical Fraction (HAF)",
-    "aty_wsi_ratio": "Slide Atypical Fraction (WAF)",
-    "mit_hotspot_count": "Hotspot Mitotic Count (HSC)"
-    }
+    "aty_ahotspot_count": "Atypical Mitosis in Atypical Hotspot (AMAH)",
+    "aty_hotspot_count": "Atypical Mitosis in mitotic Hotspot (AMH)",
+    "aty_wsi_ratio": "Atypical mitosis Fraction in WSI (AFW)",
+    "mit_hotspot_count": "Hotspot mitosis Count (HSC)",
+}
 
 # Run the analysis
 results = analyze_survival_by_event_and_cancer(df, selected_feats)

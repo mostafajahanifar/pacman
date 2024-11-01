@@ -1,29 +1,24 @@
-import os, glob
+import os
+from copy import deepcopy
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler
-from scipy import stats
-from utils import featre_to_tick, get_colors_dict
-import argparse
-from statsmodels.stats.multitest import multipletests
+from utils import featre_to_tick
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import matplotlib.cm
-import seaborn as sns
 from matplotlib.offsetbox import AnchoredText
 
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from adjustText import adjust_text
+from lifelines.plotting import add_at_risk_counts
 
-from sklearn.cluster import AgglomerativeClustering
 from lifelines import KaplanMeierFitter
 from lifelines.statistics import logrank_test
-from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 
 # Function to find the best separation point using Gaussian Mixture Model
+def median_cut_off(data):
+    return np.median(data)
+
 def find_cut_off(data, round_it=True):
     gmm = GaussianMixture(n_components=2)
     gmm.fit(data)
@@ -54,7 +49,7 @@ def find_cut_off(data, round_it=True):
 
     return intersection_point
 
-save_root = "results_final/morphology/survival_3_WAF/"
+save_root = "results_final_all/morphology/survival3GMM__AMAH/"
 
 IMPORTANT_CANCERS = ["ACC", "BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "MESO", "PRAD", "SARC", "TGCT", "THCA", "KICH"]
 ALL_CANCERS = ['SARC',
@@ -87,15 +82,17 @@ ALL_CANCERS = ['SARC',
     'DLBC',
     'UCS'
  ]
+ALL_CANCERS = sorted(ALL_CANCERS)
 
 # keep only columns that are related to mutations
 selected_feats = [
 # "aty_hotspot_count",
 # "aty_hotspot_ratio",
-"aty_wsi_ratio",
+# "aty_wsi_ratio",
+"aty_ahotspot_count",
 ]
 
-mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew_withAtypicalNew.csv')
+mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
 mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
 mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
 
@@ -135,30 +132,36 @@ for cancer_type in  IMPORTANT_CANCERS + ["Pan-cancer"]: # ALL_CANCERS +
 
             try:
                 cutoff = find_cut_off(mosi[selected_feats[0]].values.reshape(-1, 1), round_it=False)
+                # cutoff = median_cut_off(mosi[selected_feats[0]].values.reshape(-1, 1), )
             except:
                 continue
             # print(cutoff)
             if np.isnan(cutoff):
                 print(f"Nan Med: {temp} -- {cancer_type}")
                 continue
-            mosi["labeled_cluster"] = mosi[selected_feats[0]].apply(lambda x: f"{temp} High" if x > cutoff else f"{temp} Low")
+
+            feat_name = featre_to_tick(selected_feats[0])
+            # mosi["labeled_cluster"] = mosi[selected_feats[0]].apply(lambda x: f"{temp} High" if x > cutoff else f"{temp} Low")
+            mosi["labeled_cluster"] = mosi[selected_feats[0]].apply(lambda x: f"Mitotic-{temp}; {feat_name}-High" if x > cutoff else f"Mitotic-{temp}; {feat_name}-Low")
     
             
             # Create a color palette
-            cluster_colors = {"Hot High": "brown",
-                            "Hot Low": "orange",
-                            "Cold High": "skyblue",
-                            "Cold Low": "royalblue"}
+            cluster_colors = {f"Mitotic-Hot; {feat_name}-High": "brown",
+                            f"Mitotic-Hot; {feat_name}-Low": "orange",
+                            f"Mitotic-Cold; {feat_name}-High": "skyblue",
+                            f"Mitotic-Cold; {feat_name}-Low": "royalblue"}
 
             # Plot Kaplan-Meier survival plots
             kmf = KaplanMeierFitter()
             plt.figure(figsize=(2, 2))
 
             # Store Kaplan-Meier plots to add at risk counts later
+            kmf_fits = []
             for cluster in mosi['labeled_cluster'].unique():
                 mask = mosi['labeled_cluster'] == cluster
                 kmf.fit(mosi.loc[mask, event_time], event_observed=mosi.loc[mask, event_type], label=cluster)
                 ax = kmf.plot(ci_show=False, color=cluster_colors[cluster])
+                kmf_fits.append(deepcopy(kmf))
 
 
             # Perform pairwise log-rank tests and annotate p-values
@@ -214,3 +217,12 @@ for cancer_type in  IMPORTANT_CANCERS + ["Pan-cancer"]: # ALL_CANCERS +
             ax.set_ylim([0, 1])
             plt.tight_layout()
             plt.savefig(f"{save_dir}/{temp}_km_{event_type}_{selected_feats}_censor{censor_at}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
+
+            # add the risk counts and plot
+            ax.set_xticks([0, 25, 50, 75, 100])
+            ax.set_xticklabels([0, 25, 50, 75, 100])
+            ax.set_yticks([0, 0.5, 1])
+            plt.xlabel('Time (Months)')
+            add_at_risk_counts(*kmf_fits, ax=ax, rows_to_show=['At risk'], ypos=-.3)
+           
+            plt.savefig(f"{save_dir}/risked_{temp}_km_{event_type}_{selected_feats}_censor{censor_at}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)

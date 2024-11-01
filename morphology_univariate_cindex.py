@@ -4,11 +4,11 @@ import seaborn as sns
 from lifelines import CoxPHFitter
 from lifelines.utils import concordance_index
 
-mit_temp = "Cold"
+mit_temp = "all"
 valid_cancer_for_event = {
     "PFI":['GBMLGG', 'SKCM', 'LUAD', 'HNSC', 'LIHC', 'BLCA', 'COADREAD', 'KIRC',
        'BRCA', 'LUSC', 'STAD', 'SARC', 'UCEC', 'PAAD', 'ESCA', 'OV', 'CESC',
-       'KIRP', 'MESO', 'TGCT', 'UCS', 'ACC', 'PCPG'],
+       'KIRP', 'MESO', 'TGCT', 'UCS', 'ACC', 'PCPG', 'PRAD'],
     "OS": ['GBMLGG', 'HNSC', 'LUSC', 'SKCM', 'BLCA', 'KIRC', 'LUAD', 'BRCA',
        'STAD', 'LIHC', 'COADREAD', 'PAAD', 'SARC', 'UCEC', 'OV', 'ESCA',
        'CESC', 'MESO', 'UCS', 'ACC', 'DLBC'],
