@@ -18,6 +18,42 @@ import matplotlib.patheffects as pe
 import matplotlib.cm as cm
 import argparse
 
+from sklearn.mixture import GaussianMixture
+
+# Function to find the best separation point using Gaussian Mixture Model
+def median_cut_off(data):
+    return np.median(data)
+
+def find_cut_off(data, round_it=True):
+    gmm = GaussianMixture(n_components=2)
+    gmm.fit(data)
+
+    # Get the means of the two Gaussian components
+    means = gmm.means_.flatten()
+    mean1, mean2 = np.sort(means)  # Sort means to ensure correct order
+
+    # Calculate the midpoint (best separation point)
+    separation_point = (mean1 + mean2) / 2
+
+    means = gmm.means_.flatten()
+    variances = gmm.covariances_.flatten()
+    mean1, mean2 = np.sort(means)
+    var1, var2 = variances[np.argsort(means)]
+
+    # Solve for the intersection of the two Gaussian distributions
+    a = 1/(2*var1) - 1/(2*var2)
+    b = mean2/var2 - mean1/var1
+    c = mean1**2 / (2*var1) - mean2**2 / (2*var2) - np.log(np.sqrt(var2/var1))
+
+    # The quadratic formula to find the intersection points
+    roots = np.roots([a, b, c])
+    intersection_point = roots[np.logical_and(roots > mean1, roots < mean2)][0] 
+
+    if round_it:
+        intersection_point = np.round(intersection_point)
+
+    return intersection_point
+
 # setting parameters
 log2fc_thresh = 1
 pval_thresh = 1e-3
@@ -29,7 +65,7 @@ args = parser.parse_args()
 cancer_type = args.cancer
 
 # Reading the data
-mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew_withAtypicalNew.csv')
+mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
 mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
 mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
 
@@ -44,10 +80,13 @@ cancer_mitosis_feats_all = mitosis_feats[mitosis_feats["type"]==cancer_type]
 selected_feats = [
 "aty_wsi_ratio",
 ]
-for temp in ["Cold", "Hot"]:
+for temp in ["Hot"]: # ["Cold", "Hot"]:
     try:
         # keep only mitotic-hot cases
-        cancer_mitosis_feats = cancer_mitosis_feats_all[cancer_mitosis_feats_all["temperature"]==temp]
+        if temp in ["Cold", "Hot"]:
+            cancer_mitosis_feats = cancer_mitosis_feats_all[cancer_mitosis_feats_all["temperature"]==temp]
+        else:
+            cancer_mitosis_feats = cancer_mitosis_feats_all.copy()
         ## Find the common case names between mitosis features and gene expressions
         common_cases = pd.Series(list(set(cancer_mitosis_feats['bcr_patient_barcode']).intersection(set(counts_org['Case ID']))))
         ## Keep only the rows with the common case names in both dataframes
@@ -60,12 +99,13 @@ for temp in ["Cold", "Hot"]:
         df2_common = df2_common.drop_duplicates(subset='Case ID')
 
         # forming atypical-high and atypical-low groups
-        feat_med = cancer_mitosis_feats[selected_feats].median().values[0]
+        # feat_med = cancer_mitosis_feats[selected_feats].median().values[0]
+        feat_med = find_cut_off(cancer_mitosis_feats[selected_feats[0]].values.reshape(-1, 1), round_it=False)
         if np.isnan(feat_med):
             print(f"Nan Med: {temp} -- {cancer_type}")
             continue
         df1_common["atypical"] = df1_common[selected_feats[0]].apply(lambda x: "High" if x > feat_med else "Low")
-        save_root = f"results_final/morphology/dseq_results/{cancer_type}/Mitotic-{temp}/"
+        save_root = f"results_final_all/morphology/dseq_results/{cancer_type}/Mitotic-{temp}/"
         os.makedirs(save_root, exist_ok=True)
 
         print(f"Mitotic-{temp} group: {len(df1_common)} cases")
