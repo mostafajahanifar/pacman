@@ -80,7 +80,7 @@ cancer_mitosis_feats_all = mitosis_feats[mitosis_feats["type"]==cancer_type]
 selected_feats = [
 "aty_wsi_ratio",
 ]
-for temp in ["Hot"]: # ["Cold", "Hot"]:
+for temp in ["Cold"]: # ["Cold", "Hot"]:
     try:
         # keep only mitotic-hot cases
         if temp in ["Cold", "Hot"]:
