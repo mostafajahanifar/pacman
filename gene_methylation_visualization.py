@@ -67,8 +67,8 @@ selected_feats = [
     "mit_cenHarmonic_per10",
 ]
 
-ci = 0
-for i, cancer_type in enumerate(["Pan-cancer"]): # 
+ci = 1
+for i, cancer_type in enumerate(["COADREAD"]): # 
     try:
         print(f"Working on {cancer_type}")
         save_dir = f"{save_root}/{cancer_type.upper()}/"

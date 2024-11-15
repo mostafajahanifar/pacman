@@ -107,8 +107,9 @@ selected_feats = [
     # "mit_cenHarmonic_per99",
     # "mit_cenHarmonic_per10",
 ]
-# mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew_withAtypicalNew.csv')
-mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv')
+mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final.csv')
+# mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv')
+# mitosis_feats = mitosis_feats[mitosis_feats["wsi_obj_power"]==40]
 mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type"]+selected_feats]
 mitosis_feats.columns = [featre_to_tick(col) if col not in ["bcr_patient_barcode", "type"] else col for col in mitosis_feats.columns]
 mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
@@ -117,7 +118,8 @@ mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
 # drop missing mutations
 gene_exp_cancer = gene_expr_all.dropna(axis=1, how="all")
 
-for ci, cancer_type in enumerate(sorted(gene_expr_all["type"].unique())):
+for ci, cancer_type in enumerate(["COADREAD"]):# enumerate(sorted(gene_expr_all["type"].unique())):
+    ci = 1
     print(f"Working on {cancer_type}")
     save_dir = f"{save_root}/{cancer_type}/"
     os.makedirs(save_dir, exist_ok=True)

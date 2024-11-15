@@ -88,15 +88,9 @@ selected_feats = [
 ]
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser(description='Gene to mitosis features analysis')
-    # parser.add_argument('--cancer_types', nargs='+', required=True)
-    # args = parser.parse_args()
-    # cancer_types = args.cancer_types
-
     #reading necessary data
-    mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv')
-    # mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final.csv')
-    # mitosis_feats = pd.read_csv('D:/tcga/tcga_mitosis_ClusterByCancer.csv')
+    # mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv')
+    mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final.csv')
     mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
     mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
     mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type"]+selected_feats]
@@ -106,7 +100,7 @@ if __name__ == '__main__':
     gene_expr_all["type"] = gene_expr_all["type"].replace(["COAD", "READ"], "COADREAD")
     gene_expr_all["type"] = gene_expr_all["type"].replace(["GBM", "LGG"], "GBMLGG")
 
-    for cancer_types in ["Pan-cancer"]+ALL_CANCERS:
+    for cancer_types in ["COADREAD"]: # ["Pan-cancer"]+ALL_CANCERS:
         print(cancer_types)
         cancer_types = [cancer_types]
         if cancer_types != ["Pan-cancer"]:

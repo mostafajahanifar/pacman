@@ -4,11 +4,8 @@ from pydeseq2.ds import DeseqStats
 import pandas as pd
 import scanpy as sc
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import gseapy as gp
-from gseapy.plot import gseaplot
 import numpy as np
-import seaborn as sns
 from sanbomics.plots import volcano
 from gseapy import dotplot
 from gseapy import enrichment_map
@@ -29,10 +26,13 @@ args = parser.parse_args()
 cancer_type = args.cancer
 
 # Reading the data
-mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew.csv')
+# mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final_ClusterByCancerNew.csv')
+mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
 mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
 mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
 
+# if cancer_type in ["COADREAD", "BRCA", "GBMLGG"]:
+#     mitosis_feats = mitosis_feats[mitosis_feats["wsi_obj_power"]==40]
 mit_signatures = pd.read_csv("gene/data/signatures.csv")["Mitosis Process"].dropna().to_list()
 print("Reading data is done")
 
