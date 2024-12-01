@@ -73,7 +73,7 @@ ALL_CANCERS = ['SARC',
 ALL_CANCERS = sorted(ALL_CANCERS)
 
 cin_sigs = [f"CX{i}" for i in range (1,18)]
-# cin_sigs = [f"CX{i}" for i in [1, 2, 3, 4, 5, 6, 14]]
+cin_sigs = [f"CX{i}" for i in [1, 2, 3, 4, 5, 6, 14]]
 
 # keep only columns that are related to mutations
 cin_df = pd.read_excel("gene/data/tcga_cin_signatures.xlsx", sheet_name="ST_18_TCGA_Activities_raw") #"ST_20_TCGA_Activities_scaled"
@@ -132,13 +132,15 @@ for cancer_type in ALL_CANCERS + ["Mitotic Hot", "Mitotic Cold", "Pan-cancer"]:
 
     X = df1_common[[atyp_feat]]
     Y = df2_common[cin_sigs]
-    corr_matrix, pvalue_matrix = calculate_corr_matrix(Y, X, method='spearman', pvalue_correction="bonferroni")
+    corr_matrix, pvalue_matrix = calculate_corr_matrix(Y, X, method='spearman', pvalue_correction="fdr_bh")
 
     all_corr.append(corr_matrix.rename(columns={atyp_feat: cancer_type}))
     all_pval.append(pvalue_matrix.rename(columns={atyp_feat: cancer_type}))
 
 corr_matrix = pd.concat(all_corr, axis=1)
 pvalue_matrix = pd.concat(all_pval, axis=1)
+corr_matrix.to_csv(f"results_final_all/morphology/correlations_cin_{atyp_feat}_selected_spearmanFDR_corr.csv")
+pvalue_matrix.to_csv(f"results_final_all/morphology/correlations_cin_{atyp_feat}_selected_spearmanFDR_pval.csv")
 annotations = pvalue_matrix.applymap(lambda x: '*' if x < 0.05 else '') 
 
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(6, 4.4), gridspec_kw={'width_ratios': [corr_matrix.shape[1]-3, 2, 1]})
@@ -177,4 +179,4 @@ for label in heatmap3.get_xticklabels():
     
 plt.subplots_adjust(wspace=0.03, hspace=0)
 
-plt.savefig(f"results_final_all/morphology/correlations_cin_{atyp_feat}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
+plt.savefig(f"results_final_all/morphology/correlations_cin_{atyp_feat}_selected_spearmanFDR.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
