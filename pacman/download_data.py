@@ -5,7 +5,7 @@ import requests
 
 from pacman.config import DATA_DIR
 
-ZENODO_RECORD_ID = "14793678"
+ZENODO_RECORD_ID = "15603656" # check this one
 API_URL = f"https://zenodo.org/api/records/{ZENODO_RECORD_ID}"
 
 def list_files(token=None):
