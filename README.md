@@ -1,6 +1,9 @@
 # 🟡●●● Pan-Cancer Profiling of Mitotic Topology & Mitotic Errors
 
-PAn-Cancer Mitotic Activity Network (PACMAN 🟡) for profiling mitotic topology and mitotic arrors tumor microenvrionment. 
+PAn-Cancer Mitotic Activity Network (PACMAN 🟡) for profiling mitotic topology and mitotic arrors tumor microenvironment. 
+<img src="https://github.com/user-attachments/assets/7bbb2428-285e-4a15-ab3f-6962ab2c930f" alt="pacman" width="400"/>
+
+
 
 ---
 
@@ -12,13 +15,18 @@ This repository contains the complete codebase used in the associated publicatio
 > **[Mostafa Jahanifar et al.]**  
 > [Add preprint or DOI link]
 
+### 🧰 Resources
+- Our Demo website for visualizing mitotic activity networks: (PACMAN Viewer)[https://tiademos.dcs.warwick.ac.uk/bokeh_app?demo=pacman]
+- Detailed results on genomics, immune, and survival analyses using this repository: (Supplementary Tables)[https://zenodo.org/records/14793678]
+- Mitosis detection for TCGA slides: (Mitosis Detections and Mitotic Network in TCGA)[https://zenodo.org/records/14548480]
+- [Mitosis subtyping dataset](https://zenodo.org/records/15390543)
 
-📊 Features
+### 📊 Features
 - 🧬 Genomic correlation, CNV, mutation, and methylation analysis
 
 - 🏥 Mitotic morphology analyses such as survival and GSEA
 
-- 📈 Exploring mitotic landscape of cancer
+- 📈 Exploring the mitotic landscape of cancer
 
 ---
 
