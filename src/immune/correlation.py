@@ -94,7 +94,7 @@ immune_df["TCGA Study"] = immune_df["TCGA Study"].replace(["COAD", "READ"], "COA
 immune_df["TCGA Study"] = immune_df["TCGA Study"].replace(["GBM", "LGG"], "GBMLGG")
 
 selected_feats = [
-"mit_nodeDegrees_mean",
+"mean(ND)",
 "aty_wsi_ratio",
 "aty_ahotspot_count",
 ]

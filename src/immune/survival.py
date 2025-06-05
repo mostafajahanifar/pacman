@@ -67,14 +67,14 @@ immune_df["TCGA Study"] = immune_df["TCGA Study"].replace(["GBM", "LGG"], "GBMLG
 # immune_df = immune_df[["TCGA Participant Barcode", "TCGA Study", "T_Cells_CD8_temperature"]]
 
 # selected_feats = [
-# "mit_hotspot_count",
-# "mit_nodeDegrees_mean",
-# "mit_nodeDegrees_cv",
+# "HSC",
+# "mean(ND)",
+# "cv(ND)",
 # "mit_nodeDegrees_per99",
-# "mit_clusterCoff_mean",
+# "mean(CL)",
 # "mit_clusterCoff_std",
 # "mit_clusterCoff_per90",
-# "mit_cenHarmonic_mean",
+# "mean(HC)",
 # "mit_cenHarmonic_std",
 # "mit_cenHarmonic_per10",
 # "mit_cenHarmonic_per99",

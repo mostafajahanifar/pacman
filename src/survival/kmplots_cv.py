@@ -205,7 +205,7 @@ if __name__ == '__main__':
         FS_path = FS_root + f"FS_{cancer_types}_{event_type}_censor{censor_at}.txt"
     print('Reading the best features from : ', FS_path)
     if args.baseline_experiment:
-        feats_list = ['mit_hotspot_count']
+        feats_list = ['HSC']
         print(f'Running baseline experiments with {feats_list}')
     else:
         FS_df = pd.read_csv(FS_path, delimiter=';')
@@ -213,7 +213,7 @@ if __name__ == '__main__':
         best_feat_ind = FS_df.index[0]
         feats_list = ast.literal_eval(FS_df['selected_features'][best_feat_ind])
     
-    feats_list = ["AFW"] # ["mit_nodeDegrees_mean", "mit_nodeDegrees_cv", "mit_clusterCoff_mean", "mit_cenHarmonic_mean"]
+    feats_list = ["AFW"] # ["mean(ND)", "cv(ND)", "mean(CL)", "mean(HC)"]
     print("WARNING: Using hardcoded features list for testing")
 
     # setting the results path

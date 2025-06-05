@@ -312,13 +312,13 @@ def plot_rot_map(xrot, yrot, x_names, y_names):
     return fig
 
 selected_feats = [
-"mit_nodeDegrees_mean",
-"mit_nodeDegrees_cv",
+"mean(ND)",
+"cv(ND)",
 "mit_nodeDegrees_per99",
-"mit_clusterCoff_mean",
+"mean(CL)",
 "mit_clusterCoff_std",
 "mit_clusterCoff_per90",
-"mit_cenHarmonic_mean",
+"mean(HC)",
 "mit_cenHarmonic_std",
 "mit_cenHarmonic_per10",
 "mit_cenHarmonic_per99",

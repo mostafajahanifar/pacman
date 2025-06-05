@@ -118,7 +118,7 @@ def plot_c_index_barplots(results, selected_feats, feat_to_names):
 df = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
 
 # selected_feats = [
-#     "mit_hotspot_count",
+#     "HSC",
 #     "aty_ahotspot_count",
 #     "aty_hotspot_ratio",
 #     "aty_wsi_ratio",
@@ -127,14 +127,14 @@ selected_feats = [
     "aty_ahotspot_count",
     "aty_wsi_ratio",
     "aty_hotspot_count",
-    "mit_hotspot_count",
+    "HSC",
 ]
 
 color_codes = {
     "aty_ahotspot_count": "skyblue",
     "aty_wsi_ratio": "salmon",
     "aty_hotspot_count": "orchid",
-    "mit_hotspot_count": "saddlebrown",
+    "HSC": "saddlebrown",
 }
 
 feat_to_names = {
@@ -142,7 +142,7 @@ feat_to_names = {
     "aty_hotspot_ratio": "Atypical mitosis Fraction in mitotic Hotspot (AFH)",
     "aty_ahotspot_count": "Atypical Mitosis in Atypical Hotspot (AMAH)",
     "aty_wsi_ratio": "Atypical mitosis Fraction in WSI (AFW)",
-    "mit_hotspot_count": "Hotspot Mitotic Count (HSC)"
+    "HSC": "Hotspot Mitotic Count (HSC)"
     }
 
 

@@ -74,14 +74,14 @@ def calculate_corr_matrix(df1, df2, method='pearson', pvalue_correction="fdr_bh"
     return corr_matrix, pvalue_matrix
 
 selected_feats = [
-    "mit_hotspot_count",
-    "mit_nodeDegrees_mean",
-    "mit_nodeDegrees_cv",
+    "HSC",
+    "mean(ND)",
+    "cv(ND)",
     # "mit_nodeDegrees_per99",
-    "mit_clusterCoff_mean",
+    "mean(CL)",
     # "mit_clusterCoff_std",
     # "mit_clusterCoff_per90",
-    "mit_cenHarmonic_mean",
+    "mean(HC)",
     # "mit_cenHarmonic_std",
     # "mit_cenHarmonic_per99",
     # "mit_cenHarmonic_per10",

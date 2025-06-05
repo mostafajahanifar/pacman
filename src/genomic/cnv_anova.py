@@ -1,18 +1,10 @@
-import os, glob
+import os
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.cross_decomposition import CCA, PLSCanonical
-from sklearn.model_selection import KFold, StratifiedKFold
 from scipy import stats
-from utils import featre_to_tick, get_colors_dict
-import argparse
-from statsmodels.stats.multitest import multipletests
+from src.utils import featre_to_tick
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 import seaborn as sns
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import roc_auc_score
 from scipy.cluster.hierarchy import linkage, leaves_list
 from matplotlib.colors import Normalize
 from matplotlib.ticker import FuncFormatter
@@ -20,13 +12,9 @@ from matplotlib.ticker import FuncFormatter
 import statsmodels.api as sm
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
 
+import argparse
 
 def calculate_annova_matrix(X, Y):
-    # # Drop rows with NaN values in Y and align the indices
-    # non_nan_indices = ~Y.isna().any(axis=1)
-    # X = X.loc[non_nan_indices]
-    # Y = Y.loc[non_nan_indices]
-    
     # Initialize an empty DataFrame for the AUC association matrix
     f_matrix = pd.DataFrame(index=X.columns, columns=Y.columns)
     p_matrix = pd.DataFrame(index=X.columns, columns=Y.columns)
@@ -53,24 +41,18 @@ def calculate_annova_matrix(X, Y):
 save_root = "results_final_all/gene/cnv_anova"
 
 # keep only columns that are related to mutations
-gene_expr_all = pd.read_csv("gene/data/tcga_all_gene_cnv.csv")
-# sel_cols = [col for col in gene_expr_all.columns if "_cnv" in col]
-# gene_expr_all = gene_expr_all[['type', 'case_id', 'slide_id'] + sel_cols]
-# col_rename_dict = {col: col.split("_")[0] for col in sel_cols}
-# gene_expr_all = gene_expr_all.rename(columns=col_rename_dict)
+gene_cnv_all = pd.read_csv("gene/data/tcga_all_gene_cnv.csv")
+
 
 selected_feats = [
-    "mit_hotspot_count",
-    "mit_nodeDegrees_mean",
-    "mit_nodeDegrees_cv",
+    "HSC",
+    "mean(ND)",
+    "cv(ND)",
     # "mit_nodeDegrees_per99",
-    "mit_clusterCoff_mean",
+    "mean(CL)",
     # "mit_clusterCoff_std",
     # "mit_clusterCoff_per90",
-    "mit_cenHarmonic_mean",
-    # "mit_cenHarmonic_std",
-    # "mit_cenHarmonic_per99",
-    # "mit_cenHarmonic_per10",
+    "mean(HC)",
 ]
 mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final.csv')
 # mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv')
@@ -79,15 +61,15 @@ mitosis_feats.columns = [featre_to_tick(col) if col not in ["bcr_patient_barcode
 mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
 mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
 
-gene_exp_cancer = gene_expr_all.dropna(axis=1, how="all")
+gene_exp_cancer = gene_cnv_all.dropna(axis=1, how="all")
 
-for ci, cancer_type in enumerate(sorted(gene_expr_all["type"].unique())): #enumerate(["COADREAD"]):#
+for ci, cancer_type in enumerate(sorted(gene_cnv_all["type"].unique())): #enumerate(["COADREAD"]):#
     print(f"Working on {cancer_type}")
     save_dir = f"{save_root}/{cancer_type}/"
     os.makedirs(save_dir, exist_ok=True)
 
     mitosis_feats_cancer = mitosis_feats[mitosis_feats["type"]==cancer_type]
-    # gene_exp_cancer = gene_expr_all[gene_expr_all["type"]==cancer_type]
+    # gene_exp_cancer = gene_cnv_all[gene_cnv_all["type"]==cancer_type]
 
     
 

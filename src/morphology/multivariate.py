@@ -112,7 +112,7 @@ def save_results_to_excel(results):
 df = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
 
 selected_feats = [
-    "mit_hotspot_count",
+    "HSC",
     # "aty_ahotspot_count",
     # "aty_wsi_ratio",
     "aty_hotspot_count",
@@ -122,7 +122,7 @@ feat_to_names = {
     "aty_ahotspot_count": "Atypical Mitosis in Atypical Hotspot (AMAH)",
     "aty_hotspot_count": "Atypical Mitosis in mitotic Hotspot (AMH)",
     "aty_wsi_ratio": "Atypical mitosis Fraction in WSI (AFW)",
-    "mit_hotspot_count": "Hotspot mitosis Count (HSC)",
+    "HSC": "Hotspot mitosis Count (HSC)",
 }
 
 # Run the analysis

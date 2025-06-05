@@ -141,7 +141,7 @@ selected_feats = [
     "aty_ahotspot_count",
     "aty_wsi_ratio",
     "aty_hotspot_count",
-    "mit_hotspot_count",
+    "HSC",
     # "aty_ahotspot_ratio",
     # "aty_hotspot_ratio",
 ]
@@ -152,7 +152,7 @@ feat_to_names = {
     "aty_hotspot_ratio": "AFH",
     "aty_hotspot_count": "AMH",
     "aty_wsi_ratio": "AFW",
-    "mit_hotspot_count": "HSC",
+    "HSC": "HSC",
 }
 
 # Run the univariate analysis and plot the hazard ratios with confidence intervals

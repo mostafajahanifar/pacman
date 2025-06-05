@@ -81,7 +81,7 @@ cin_df = cin_df.rename(columns={"Unnamed: 0": "TCGA Participant Barcode"})
 
 atyp_feat = "AMAH"
 selected_feats = [
-    "mit_nodeDegrees_mean",
+    "mean(ND)",
     "aty_wsi_ratio",
     "aty_hotspot_count",
     "aty_hotspot_ratio",

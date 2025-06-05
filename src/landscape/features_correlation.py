@@ -91,12 +91,12 @@ immune_df["TCGA Study"] = immune_df["TCGA Study"].replace(["COAD", "READ"], "COA
 immune_df["TCGA Study"] = immune_df["TCGA Study"].replace(["GBM", "LGG"], "GBMLGG")
 
 selected_feats = [
-    "mit_hotspot_count",
-    "mit_nodeDegrees_mean",
-    # "mit_nodeDegrees_cv",
-    "mit_clusterCoff_mean",
+    "HSC",
+    "mean(ND)",
+    # "cv(ND)",
+    "mean(CL)",
     # "mit_clusterCoff_std",
-    "mit_cenHarmonic_mean",
+    "mean(HC)",
     # "mit_cenHarmonic_per10",
 ]
 
