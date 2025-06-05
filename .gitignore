@@ -1,0 +1,17 @@
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Ignore data
+data/
+splits/
+
+
+# Ignore results directories (so you don’t accidentally commit large outputs)
+results/
+
+# Ignore any environment files if generated locally
+.env
