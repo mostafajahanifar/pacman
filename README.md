@@ -46,6 +46,11 @@ conda activate pacman
 ```
 
 ### 3. Download the data
+To run the experiment, you will need external data tables on genomic, immune, or mitotic attributes. You can download selected or all of these dataset files from Zenodo by running:
+```bash
+python pacman/download_from_zenodo.py
+```
+You will be prompted to select which files to download. You can eather select the files by number or choose to download `all` files.
 
 
 ### 4. Configuration
@@ -54,6 +59,7 @@ All directory paths and global parameters are defined in:
 ```arduino
 pacman/config.py
 ```
+Especially, the path to the data (for reading or downloading) and the path for saaving the results can be changed in this module.
 
 ### 5. Run an analysis script
 Run any analysis module using:

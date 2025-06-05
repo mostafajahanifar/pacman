@@ -15,3 +15,5 @@ results/
 
 # Ignore any environment files if generated locally
 .env
+
+external_data_upload.py
