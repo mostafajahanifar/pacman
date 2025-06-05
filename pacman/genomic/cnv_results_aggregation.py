@@ -1,15 +1,18 @@
 import os
-import pandas as pd
-import numpy as np
-from openpyxl import Workbook
-from openpyxl.styles import PatternFill
-import matplotlib.pyplot as plt
+
 import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from openpyxl.styles import PatternFill
+
+from pacman.config import DATA_DIR, RESULTS_DIR
 
 # Directory containing the cancer types' subdirectories
-base_dir = "results_final_all/gene/cnv_anova"
+base_dir = os.path.join(RESULTS_DIR, "genomic/cnv_anova")
+
 # Create a writer to write results into an Excel file
-output_file = "results_final_all/gene/cnv_anova/gene_cnv_anova_aggregated.xlsx"
+output_file = os.path.join(RESULTS_DIR, "genomic/cnv_anova/gene_cnv_anova_aggregated.xlsx")
 writer = pd.ExcelWriter(output_file, engine='openpyxl')
 
 
@@ -28,7 +31,7 @@ def format_pval_table(fstat_matrix, pval_matrix, sheet, cmap, norm):
         for col_idx, feature in enumerate(pval_matrix.columns, start=2):  # start=2 because col 1 is index
             pval_value = pval_matrix.at[gene, feature]
             fstat_value = fstat_matrix.at[gene, feature]
-            
+
             # Get the color based on the F-statistics value
             color_hex = get_color_from_fstat(fstat_value, cmap, norm)
             fill = PatternFill(start_color=color_hex, end_color=color_hex, fill_type="solid")
@@ -82,11 +85,11 @@ def process_anova_cancer_type(cancer_type, fstat_file, pval_file, writer, cmap, 
 # Loop through each cancer type's directory
 for cancer_type in sorted(os.listdir(base_dir)):
     cancer_dir = os.path.join(base_dir, cancer_type)
-    
+
     if os.path.isdir(cancer_dir):
         fstat_file = os.path.join(cancer_dir, f"cnv_annova-f_{cancer_type}.csv")
         pval_file = os.path.join(cancer_dir, f"cnv_annova-p_{cancer_type}.csv")
-        
+
         if os.path.exists(fstat_file) and os.path.exists(pval_file):
             process_anova_cancer_type(cancer_type, fstat_file, pval_file, writer, cmap, norm)
 

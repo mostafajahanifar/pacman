@@ -1,4 +1,3 @@
-import argparse
 import os
 
 import matplotlib.pyplot as plt
@@ -53,12 +52,13 @@ def calculate_annova_matrix(X, Y):
     return f_matrix.astype(float), p_matrix.astype(float)
 
 
-save_root = os.path.join(RESULTS_DIR, "gene/cnv_anova")
+save_root = os.path.join(RESULTS_DIR, "genomic/cnv_anova")
 
-# keep only columns that are related to mutations
+# reading information
 gene_cnv_all = pd.read_csv(os.path.join(DATA_DIR, "tcga_all_gene_cnv.csv"))
+mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
 
-
+# keeping only necessary columns and rows
 selected_feats = [
     "HSC",
     "mean(ND)",
@@ -66,16 +66,14 @@ selected_feats = [
     "mean(CL)",
     "mean(HC)",
 ]
-
-mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
 mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type"] + selected_feats]
-
 gene_exp_cancer = gene_cnv_all.dropna(axis=1, how="all")
 
+# do experiment for each cancer type
 for ci, cancer_type in enumerate(
     sorted(gene_cnv_all["type"].unique())
 ):
-    print(f"Working on {cancer_type}")
+    print(f"ANOVA analysis for CNV in {cancer_type} ...")
     save_dir = f"{save_root}/{cancer_type}/"
     os.makedirs(save_dir, exist_ok=True)
 
