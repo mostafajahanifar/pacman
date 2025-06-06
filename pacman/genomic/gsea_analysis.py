@@ -17,6 +17,10 @@ from sanbomics.plots import volcano
 
 from pacman.config import ALL_CANCERS, DATA_DIR, RESULTS_DIR
 
+print(7*"="*7)
+print(f"Running GSEA Analysis")
+print(7*"="*7)
+
 # setting parameters
 log2fc_thresh = 1
 pval_thresh = 1e-3
