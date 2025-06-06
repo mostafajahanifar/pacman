@@ -1,13 +1,19 @@
 import os
-import pandas as pd
-import numpy as np
-from utils import featre_to_tick, get_colors_dict
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sns
-from sklearn.preprocessing import MinMaxScaler
+from scipy.cluster.hierarchy import leaves_list, linkage
 from sklearn.metrics import roc_auc_score
-from scipy.cluster.hierarchy import linkage, leaves_list
+from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
+
+from pacman.config import ALL_CANCERS, DATA_DIR, RESULTS_DIR
+
+print(7*"="*7)
+print("Measuring association with point mutation")
+print(7*"="*7)
 
 def auc_association_matrix(X: pd.DataFrame, Y: pd.DataFrame) -> pd.DataFrame:
     # Drop rows with NaN values in Y and align the indices
@@ -59,67 +65,26 @@ def permutation_test(X, Y, auc_matrix, n_permutations=500):
 
     return p_values
 
-save_root = "results_final_all/gene/mutation_pval"
+save_root = f"{RESULTS_DIR}/genomic/mutation_pval"
 
-# keep only columns that are related to mutations
-gene_expr_all = pd.read_csv("gene/data/tcga_all_gene_mutations.csv")
-
-ALL_CANCERS = ['SARC',
-    'LIHC',
-    'THYM',
-    'ACC',
-    'BRCA',
-    'KICH',
-    'STAD',
-    'BLCA',
-    'THCA',
-    'GBMLGG',
-    'UCEC',
-    'LUAD',
-    'KIRC',
-    'KIRP',
-    'PAAD',
-    'CESC',
-    'PCPG',
-    'MESO',
-    'SKCM',
-    'PRAD',
-    'COADREAD',
-    'ESCA',
-    'LUSC',
-    'HNSC',
-    'OV',
-    'TGCT',
-    'CHOL',
-    'DLBC',
-    'UCS'
- ]
 selected_feats = [
     "HSC",
     "mean(ND)",
     "cv(ND)",
-    # "mit_nodeDegrees_per99",
     "mean(CL)",
-    # "mit_clusterCoff_std",
-    # "mit_clusterCoff_per90",
     "mean(HC)",
-    # "mit_cenHarmonic_std",
-    # "mit_cenHarmonic_per99",
-    # "mit_cenHarmonic_per10",
 ]
-mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final.csv')
-# mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final.csv')
-# mitosis_feats = mitosis_feats[mitosis_feats["wsi_obj_power"]==40]
+
+#reading necessary data
+mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
 mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type"]+selected_feats]
-mitosis_feats.columns = [featre_to_tick(col) if col not in ["bcr_patient_barcode", "type"] else col for col in mitosis_feats.columns]
-mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
-mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
+gene_expr_all = pd.read_csv(f"{DATA_DIR}/tcga_all_gene_mutations.csv")
 
 # drop missing mutations
 gene_exp_cancer = gene_expr_all.dropna(axis=1, how="all")
 
-for ci, cancer_type in enumerate(["COADREAD"]):# enumerate(sorted(gene_expr_all["type"].unique())):
-    ci = 1
+for ci, cancer_type in enumerate(sorted(gene_expr_all["type"].unique())):
+
     print(f"Working on {cancer_type}")
     save_dir = f"{save_root}/{cancer_type}/"
     os.makedirs(save_dir, exist_ok=True)
@@ -208,9 +173,6 @@ for ci, cancer_type in enumerate(["COADREAD"]):# enumerate(sorted(gene_expr_all[
 
     count_ones = Y[auc_matrix_reordered.index].mean(axis=0)
 
-    print (auc_matrix_reordered)
-    print (pval_matrix_reordered)
-
     # Calculate figure size dynamically based on the number of columns (heatmap cells width)
     n_cols = auc_matrix_reordered.shape[0]
     cell_size = 0.25  # size of each cell in inches
@@ -238,8 +200,6 @@ for ci, cancer_type in enumerate(["COADREAD"]):# enumerate(sorted(gene_expr_all[
     ax_bar.set_ylim(0, max_y_tick)
     ax_bar.set_yticks([max_y_tick] if ci==0 else [])
     ax_bar.set_yticklabels([f"{max_y_tick}"] if ci==0 else [])
-
-    # 
 
     # Heatmap
     annot_matrix_reordered = pval_matrix_reordered.applymap(lambda x: '*' if x <= 0.05 else '')
