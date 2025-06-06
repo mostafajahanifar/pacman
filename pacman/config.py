@@ -13,7 +13,7 @@ for d in [DATA_DIR, RESULTS_DIR]:
 ### ========== HYPERPARAMETERS ==========
 
 ### ========== DOMAIN CONSTANTS ==========
-ALL_CANCERS = ['SARC',
+ALL_CANCERS = sorted(['SARC',
     'LIHC',
     'THYM',
     'ACC',
@@ -42,4 +42,4 @@ ALL_CANCERS = ['SARC',
     'CHOL',
     'DLBC',
     'UCS'
- ]
+ ])

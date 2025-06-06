@@ -1,21 +1,10 @@
 import argparse
-import glob
 import os
 
-import matplotlib.patches as mpatches
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import seaborn as sns
-from scipy import stats
-from sklearn.cross_decomposition import CCA, PLSCanonical
-from sklearn.model_selection import KFold, StratifiedKFold
-from sklearn.preprocessing import StandardScaler
-from statsmodels.stats.multitest import multipletests
-from utils import featre_to_tick, get_colors_dict
 
 from pacman.config import ALL_CANCERS, DATA_DIR, RESULTS_DIR
-from pacman.utils import calculate_corr_matrix, get_colors_dict
+from pacman.utils import calculate_corr_matrix
 
 selected_feats = [
     "HSC",

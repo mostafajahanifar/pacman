@@ -1,16 +1,55 @@
 import os
+
 import pandas as pd
-import numpy as np
-from openpyxl import Workbook
 
-# Directory containing the cancer types' subdirectories
-base_dir = "results_final_all/gene/expression"
-# Create a writer to write results into an Excel file
-output_file = "results_final_all/gene/expression/pacman_genes_correlation_aggregated.xlsx"
+from pacman.config import ALL_CANCERS, DATA_DIR, RESULTS_DIR
+
+print(7*"="*7)
+print("Finding PACMAN set as highly correlated genes with mitosis features")
+print("This should be run after correlation_measuring.py with mode=expression")
+print(7*"="*7)
+
+corr_thresh = 0.6
+print(f"Using correlation threshold: {corr_thresh}")
+# Directory where your subdirectories are located
+base_directory = os.path.join(RESULTS_DIR, "gene/expression/")
+
+# importing feature data to extract number of cases in each study
+df = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
+
+# Initialize an empty set to store unique gene names
+pacman_set = set([])
+
+# Walk through each subdirectory to find PACMAN genes
+for root, dirs, files in os.walk(base_directory):
+    # Check if both corr_p.csv and corr_r.csv exist in the directory
+    if 'corr_r.csv' in files and 'corr_p.csv' in files:
+        # Get the subdirectory name
+        subdirectory_name = os.path.basename(root)
+
+        temp_df = df[df['type']==subdirectory_name]
+        # Load correlation and p-value files
+        corr_r_df = pd.read_csv(os.path.join(root, 'corr_r.csv'))
+        corr_p_df = pd.read_csv(os.path.join(root, 'corr_p.csv'))
+
+        corr_r_df=corr_r_df.set_index("Unnamed: 0")
+        corr_p_df=corr_p_df.set_index("Unnamed: 0")
+
+        # make the corr_r equal to 0 for the genes with non-significant p-value
+        corr_r_df[corr_p_df>0.01] = 0
+
+        corr_r_max = corr_r_df.abs().max(axis=0)
+        selected_genes = corr_r_max[corr_r_max>corr_thresh].index
+
+        pacman_set = pacman_set.union(set(selected_genes))
+
+        print(subdirectory_name, len(selected_genes))
+
+
+# Now, extract correlation measures for the PACMAN set
+output_file = f"{base_directory}/pacman_genes_correlation_aggregated.xlsx"
 writer = pd.ExcelWriter(output_file, engine='openpyxl')
-
-gene_list = pd.read_csv("results_final_all/gene/expression/filtered_results_major_cancers.csv", header=None)
-gene_list = sorted(gene_list[0].to_list())
+gene_list = sorted(list(pacman_set))
 
 
 # Function to process each cancer type for correlation analysis
@@ -27,13 +66,6 @@ def process_correlation_cancer_type(cancer_type, corr_file, pval_file, writer):
     corr_matrix = corr_matrix.loc[gene_list]
     pval_matrix = pval_matrix.loc[gene_list]
 
-    # # Filter genes with at least one p-value < 0.05 (significant correlations)
-    # significant_genes = pval_matrix[pval_matrix < 0.05].dropna(how='all').index
-    # if significant_genes.empty:
-    #     print(f"No signicant gene for {cancer_type}")
-    #     return -1
-    # corr_matrix = corr_matrix.loc[significant_genes]
-    # pval_matrix = pval_matrix.loc[significant_genes]
 
     # Sort genes based on the maximum correlation across features
     corr_r_matrix_rank = corr_matrix.copy()
@@ -44,7 +76,7 @@ def process_correlation_cancer_type(cancer_type, corr_file, pval_file, writer):
     # Reorder the matrices based on sorted genes
     corr_matrix = corr_matrix.loc[sorted_genes]
     pval_matrix = pval_matrix.loc[sorted_genes]
-    
+
     # Format the correlation values: 2 decimals and add '*' if p-value < 0.05
     formatted_corr_matrix = corr_matrix.copy()
     for gene in corr_matrix.index:
@@ -61,14 +93,14 @@ def process_correlation_cancer_type(cancer_type, corr_file, pval_file, writer):
 
 
 # Loop through each cancer type's directory
-for cancer_type in sorted(os.listdir(base_dir)):
-    cancer_dir = os.path.join(base_dir, cancer_type)
-    
+for cancer_type in ["PAN-CANCER"] + ALL_CANCERS:
+    cancer_dir = os.path.join(base_directory, cancer_type)
+
     if os.path.isdir(cancer_dir):
-        print(cancer_type)
+        print("Collecting correlations from: ", cancer_type)
         corr_file = os.path.join(cancer_dir, f"corr_r.csv")
         pval_file = os.path.join(cancer_dir, f"corr_p.csv")
-        
+
         if os.path.exists(corr_file) and os.path.exists(pval_file):
             process_correlation_cancer_type(cancer_type, corr_file, pval_file, writer)
 
