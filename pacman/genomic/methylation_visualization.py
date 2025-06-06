@@ -1,74 +1,29 @@
-import os, glob
-import pandas as pd
-import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.cross_decomposition import CCA, PLSCanonical
-from sklearn.model_selection import KFold, StratifiedKFold
-from scipy import stats
-from utils import featre_to_tick, get_colors_dict
-import argparse
-from statsmodels.stats.multitest import multipletests
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
+import pandas as pd
 import seaborn as sns
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import roc_auc_score
-from scipy.cluster.hierarchy import linkage, leaves_list
+from scipy.cluster.hierarchy import leaves_list, linkage
 
-save_root = "results_final_all/gene/methylation"
-df = pd.read_csv("gene/data/data_methylation.txt", sep="\t")
+from pacman.config import ALL_CANCERS, DATA_DIR, RESULTS_DIR
+
+print(7*"="*7)
+print(f"Running Gene Methylation Visualization")
+print(7*"="*7)
+
+save_root = f"{RESULTS_DIR}/genomic/methylation"
+df = pd.read_csv(f"{DATA_DIR}/data_methylation.txt", sep="\t")
 df['NAME'] = df.apply(lambda row: row['ENTITY_STABLE_ID'] if pd.isna(row['NAME']) else row['NAME'], axis=1)
 id_to_name = df.set_index('ENTITY_STABLE_ID')['NAME'].to_dict()
 
-
-
-ALL_CANCERS = [
-    'SARC',
-    'LIHC',
-    'THYM',
-    # 'ACC',
-    'BRCA',
-    'KICH',
-    'STAD',
-    'BLCA',
-    'THCA',
-    'GBMLGG',
-    'UCEC',
-    'LUAD',
-    'KIRC',
-    'KIRP',
-    'PAAD',
-    'CESC',
-    'PCPG',
-    'MESO',
-    'SKCM',
-    'PRAD',
-    'COADREAD',
-    'ESCA',
-    'LUSC',
-    'HNSC',
-    'OV',
-    'TGCT',
-    'CHOL',
-    'DLBC',
-    'UCS'
-]
 selected_feats = [
     "HSC",
     "mean(ND)",
     "cv(ND)",
-    "mit_nodeDegrees_per99",
     "mean(CL)",
-    "mit_clusterCoff_std",
-    "mit_clusterCoff_per90",
     "mean(HC)",
-    "mit_cenHarmonic_std",
-    "mit_cenHarmonic_per99",
-    "mit_cenHarmonic_per10",
 ]
 
-ci = 1
-for i, cancer_type in enumerate(["COADREAD"]): # 
+ci = 0
+for i, cancer_type in enumerate(["Pan-cancer"] + ALL_CANCERS):
     try:
         print(f"Working on {cancer_type}")
         save_dir = f"{save_root}/{cancer_type.upper()}/"
@@ -86,10 +41,6 @@ for i, cancer_type in enumerate(["COADREAD"]): #
 
         corr_r_matrix = corr_r_matrix.set_index(corr_r_matrix.columns[0])
         corr_p_matrix = corr_p_matrix.set_index(corr_p_matrix.columns[0])
-
-        # corr_r_matrix = corr_r_matrix.set_index("Unnamed: 0")
-        # corr_p_matrix = corr_p_matrix.set_index("Unnamed: 0")
-
 
         # Make correlation of non-significant mutations equal to zero
         corr_r_matrix_rank = corr_r_matrix.copy()
