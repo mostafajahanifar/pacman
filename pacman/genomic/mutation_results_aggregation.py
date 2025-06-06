@@ -1,12 +1,18 @@
 import os
+
 import pandas as pd
-from openpyxl import Workbook
+
+from pacman.config import ALL_CANCERS, RESULTS_DIR
+
+print(7*"="*7)
+print("Aggregating Gene Mutation Results")
+print(7*"="*7)
 
 # Directory containing the cancer types' subdirectories
-base_dir = "results_final_all/gene/mutation_pval"
+base_dir = f"{RESULTS_DIR}/genomic/mutation_pval"
 
 # Create a writer to write results into an Excel file
-output_file = "results_final_all/gene/mutation_pval/gene_mutation_aggregated.xlsx"
+output_file = f"{RESULTS_DIR}/genomic/mutation_pval/gene_mutation_aggregated.xlsx"
 writer = pd.ExcelWriter(output_file, engine='openpyxl')
 
 # Function to process each cancer type
@@ -17,9 +23,7 @@ def process_cancer_type(cancer_type, auc_file, pval_file, writer):
 
     # Filter genes with at least one p-value < 0.05 (significant correlations)
     significant_genes = pval_matrix[pval_matrix < 0.05].dropna(how='all').index
-    # if significant_genes.empty:
-    #     print(f"No signicant gene for {cancer_type}")
-    #     return -1
+
     if len(significant_genes) >=5:
         auc_matrix = auc_matrix.loc[significant_genes]
         pval_matrix = pval_matrix.loc[significant_genes]
@@ -62,7 +66,7 @@ def process_cancer_type(cancer_type, auc_file, pval_file, writer):
     formatted_auc_matrix.to_excel(writer, sheet_name=cancer_type)
 
 # Loop through each cancer type's directory
-for cancer_type in sorted(os.listdir(base_dir)):
+for cancer_type in ALL_CANCERS:
     cancer_dir = os.path.join(base_dir, cancer_type)
     
     if os.path.isdir(cancer_dir):
