@@ -123,7 +123,7 @@ def single_canonical(X, Y, method="PLSCanonical"):
         plsca = CCA(n_components=2)
     else:
         raise ValueError("unknown method")
-    
+
     X_r, Y_r = plsca.fit_transform(X, Y)
 
     # calculate overall correlations
@@ -135,7 +135,7 @@ def single_canonical(X, Y, method="PLSCanonical"):
     xrot = plsca.x_rotations_
     yrot = plsca.y_rotations_
 
-    return overall_pearsonr, overall_spearmanr, xrot, yrot, X_r, Y_r 
+    return overall_pearsonr, overall_spearmanr, xrot, yrot, X_r, Y_r
 
 def k_fold_canonical(X, Y, method="PLSCanonical", num_folds=5, stratify_by_type=None):
     # Initialize CCA or PLSCanonical
@@ -217,12 +217,12 @@ def plot_rot_map(xrot, yrot, x_names, y_names):
         if x>0 and y<0:
             h, v = "left", "top"
         return h,v
-    fig, ax = plt.subplots(figsize=(4, 4)) 
+    fig, ax = plt.subplots(figsize=(4, 4))
     # plt.xlim((-1.01,1.01))
     # plt.ylim((-1.01,1.01))
     plt.xlim((-0.76,0.76))
     plt.ylim((-0.76,0.76))
-    
+
     # first draw circles
     circle1 = plt.Circle((0, 0), 0.1, fill=False, color='black', alpha=0.5)
     circle2 = plt.Circle((0, 0), 0.5, fill=False, color='black', alpha=0.5)
@@ -276,7 +276,7 @@ if __name__ == '__main__':
     mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
     signatures = pd.read_csv(os.path.join(DATA_DIR, "signatures.csv"))
     gene_expr_all = pd.read_csv(os.path.join(DATA_DIR, "tcga_all_gene_expressions_normalized.csv"))
-    
+
     # setting the saving directories
     canonical_save_root = os.path.join(RESULTS_DIR, "genomic/canonical_corr/")
 
@@ -288,7 +288,7 @@ if __name__ == '__main__':
         print("Working on ALL cancer types together")
     mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type"]+selected_feats]
     cancer_types_name = ''.join(cancer_types).upper()
-    gene_groups = signatures.columns.tolist() # ["Mitosis","Mitosis Process", "Tumor Suppressor","Oncogenes","Protein Kinases"] # 
+    gene_groups = signatures.columns.tolist() # ["Mitosis","Mitosis Process", "Tumor Suppressor","Oncogenes","Protein Kinases"] #
 
     # results place holders
     CCA_res_dict = {'type': [], "gene_group": [], "overall_pearsonr": [], "overall_spearmanr": [], "mean_pears_corrs": [], "std_pears_corrs": [], "mean_spears_corrs": [], "std_spears_corrs": []}
@@ -309,7 +309,7 @@ if __name__ == '__main__':
         ## Keep only the rows with the common case names in both dataframes
         df1_common = mitosis_feats[mitosis_feats['bcr_patient_barcode'].isin(common_cases)]
         df2_common = gene_expr[gene_expr['case_id'].isin(common_cases)]
-        # ## remove the _rnaseq tail from the name of the 
+        # ## remove the _rnaseq tail from the name of the
         # df2_common.columns = [col.strip('_rnaseq') if col != 'case_id' else col for col in df2_common.columns]
         ## Sort the dataframes based on 'case_name'
         df1_common = df1_common.sort_values('bcr_patient_barcode')
@@ -341,7 +341,7 @@ if __name__ == '__main__':
         fig = plot_rot_map(cca_x_rot, cca_y_rot, df1_common.columns[2:], df2_common.columns[2:])
         fig.savefig(os.path.join(canon_save_path, f"cv_cca_rotplot_{cancer_types_name}_{gene_group}.pdf"), dpi=600, bbox_inches = 'tight', pad_inches = 0)
         fig.savefig(os.path.join(canon_save_path, f"cv_cca_rotplot_{cancer_types_name}_{gene_group}.png"), dpi=600, bbox_inches = 'tight', pad_inches = 0)
-        
+
         overall_pearsonr, overall_spearmanr, xrot, yrot, X_r, Y_r = single_canonical(X, Y, method="CCA")
         single_CCA_res_dict = populate_results_dict(single_CCA_res_dict, cancer_types_name, gene_group, overall_pearsonr, overall_spearmanr)
         fig = plot_comp_corr(X_r, Y_r, f"CCA-{gene_group}-Pearson corr.: {overall_pearsonr:.2f}")

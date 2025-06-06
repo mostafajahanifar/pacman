@@ -46,23 +46,26 @@ def calculate_corr_matrix(
 
     corr_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns, dtype=np.float32)
     pvalue_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns, dtype=np.float32)
-
     for row in df1.columns:
         for col in df2.columns:
-            x = df1[row]
-            y = df2[col]
-            if method == "spearman":
-                corr, pval = stats.spearmanr(x, y)
-            else:
-                corr, pval = stats.pearsonr(x, y)
-
+            df_no_na = pd.concat([df1[row], df2[col]], axis=1)
+            df_no_na = df_no_na.dropna(axis=0, how="any")
+            if method == 'spearman':
+                corr, pvalue = stats.spearmanr(df_no_na[row], df_no_na[col])
+            elif method == 'pearson':
+                corr, pvalue = stats.pearsonr(df_no_na[row], df_no_na[col])
             corr_matrix.at[row, col] = np.float32(corr)
-            pvalue_matrix.at[row, col] = np.float32(pval)
-
+            pvalue_matrix.at[row, col] = np.float32(pvalue)
+    # correcting pvalues for the number of genes
     if pvalue_correction is not None:
-        flat_pvals = pvalue_matrix.values.flatten()
-        corrected_pvals = multipletests(flat_pvals, alpha=0.05, method=pvalue_correction)[1]
-        pvalue_matrix.loc[:, :] = corrected_pvals.reshape(pvalue_matrix.shape)
+        # Flatten the DataFrame to a 1D array
+        pvals = pvalue_matrix.values.flatten()
+        # Apply the correction
+        corrected_pvals = multipletests(pvals, alpha=0.05, method=pvalue_correction)[1]
+        # Reshape the corrected p-values back to the original shape of pvalue_matrix
+        corrected_pvals_matrix = corrected_pvals.reshape(pvalue_matrix.shape)
+        # Replace the values in the original DataFrame
+        pvalue_matrix.loc[:, :] = corrected_pvals_matrix
 
     return corr_matrix, pvalue_matrix
 
