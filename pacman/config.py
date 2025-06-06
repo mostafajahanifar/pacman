@@ -13,3 +13,33 @@ for d in [DATA_DIR, RESULTS_DIR]:
 ### ========== HYPERPARAMETERS ==========
 
 ### ========== DOMAIN CONSTANTS ==========
+ALL_CANCERS = ['SARC',
+    'LIHC',
+    'THYM',
+    'ACC',
+    'BRCA',
+    'KICH',
+    'STAD',
+    'BLCA',
+    'THCA',
+    'GBMLGG',
+    'UCEC',
+    'LUAD',
+    'KIRC',
+    'KIRP',
+    'PAAD',
+    'CESC',
+    'PCPG',
+    'MESO',
+    'SKCM',
+    'PRAD',
+    'COADREAD',
+    'ESCA',
+    'LUSC',
+    'HNSC',
+    'OV',
+    'TGCT',
+    'CHOL',
+    'DLBC',
+    'UCS'
+ ]
