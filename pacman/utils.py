@@ -328,7 +328,9 @@ def add_at_risk_counts(
                 continue
             if len(line)==0:
                 continue
-            color_idx = (li+1) % len(colors)  # match group order (li+1 because the first line is empty)
+            print(colors)
+            color_idx = (li-1) % len(colors)  # match group order (li+1 because the first line is empty)
+            print(color_idx)
             ax2.text(
                 xi,
                 ax2_ypos - li * line_height,
