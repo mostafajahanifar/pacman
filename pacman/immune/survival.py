@@ -30,7 +30,7 @@ mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
 mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type", "temperature"]]
 
 
-for cancer_type in SURV_CANCERS[2:3]:
+for cancer_type in SURV_CANCERS:
     print(cancer_type)
     mitosis_feats_cancer = mitosis_feats[mitosis_feats["type"]==cancer_type]
 
@@ -145,7 +145,7 @@ for cancer_type in SURV_CANCERS[2:3]:
             plt.savefig(f"{save_dir}/km_{event_type}_{immune_feat}_censor{censor_at}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
 
             # add the risk counts and plot
-            fig.set_size_inches(2.5, 2)
+            fig.set_size_inches(2.2, 1.5)
             ax.set_xticks([0, 25, 50, 75, 100])
             ax.set_xticklabels([0, 25, 50, 75, 100])
             ax.set_yticks([0, 0.5, 1])
@@ -173,4 +173,4 @@ for cancer_type in SURV_CANCERS[2:3]:
                 g.ax_heatmap.axvline(i, color='white', lw=0.2)  # Add vertical linecbar_{immune_feat}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
             plt.savefig(f"{save_dir}/cbar_{event_type}_{immune_feat}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
         except Exception as e:
-            print(f"Error processing {cancer_type}: {e}")
+            print(f"Error processing {cancer_type} and {event_type}: {e}")
