@@ -68,11 +68,11 @@ def process_cancer_type(cancer_type, auc_file, pval_file, writer):
 # Loop through each cancer type's directory
 for cancer_type in ALL_CANCERS:
     cancer_dir = os.path.join(base_dir, cancer_type)
-    
+
     if os.path.isdir(cancer_dir):
         auc_file = os.path.join(cancer_dir, f"{cancer_type}_auc_matrix.csv")
         pval_file = os.path.join(cancer_dir, f"{cancer_type}_pval_matrix.csv")
-        
+
         if os.path.exists(auc_file) and os.path.exists(pval_file):
             print(f"Processing {cancer_type}")
             process_cancer_type(cancer_type, auc_file, pval_file, writer)

@@ -5,6 +5,10 @@ import requests
 
 from pacman.config import DATA_DIR
 
+print(7 * "=" * 7)
+print("Downloading data necessary for experiments from Zenodo")
+print(7 * "=" * 7)
+
 ZENODO_RECORD_ID = "15603656" # check this one
 API_URL = f"https://zenodo.org/api/records/{ZENODO_RECORD_ID}"
 
