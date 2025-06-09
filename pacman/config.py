@@ -43,3 +43,5 @@ ALL_CANCERS = sorted(['SARC',
     'DLBC',
     'UCS'
  ])
+
+SURV_CANCERS = sorted(["ACC", "BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "MESO", "PRAD", "SARC", "TGCT", "THCA", "KICH"])

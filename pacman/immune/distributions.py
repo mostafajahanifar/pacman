@@ -27,7 +27,7 @@ print(f"Running Immune Subtypes Distribution Comparison Analysis in {args.mode} 
 print(7 * "=" * 7)
 
 
-save_root = f"{RESULTS_DIR}/immune_check/distributions/"
+save_root = f"{RESULTS_DIR}/immune/distributions/"
 os.makedirs(save_root, exist_ok=True)
 
 selected_feats = [
