@@ -12,9 +12,9 @@ PAn-Cancer Mitotic Activity Network (PACMAN 🟡) for profiling mitotic topology
 
 This repository contains the complete codebase used in the associated publication:
 
-> 📄 _"Pan-Cancer Profiling of Mitotic Topology & Mitotic Errors: Insights into Prognosis, Genomic Alterations, and Immune Landscape"_  
-> **[Mostafa Jahanifar et al.]**  
-> [Add preprint or DOI link]
+> 📄 **"Pan-Cancer Profiling of Mitotic Topology & Mitotic Errors: Insights into Prognosis, Genomic Alterations, and Immune Landscape"**  
+> _Mostafa Jahanifar, Muhammad Dawood, Neda Zamanitajeddin, Adam Shephard, Brinder Singh Chohan, Christof A Bertram, Noorul Wahab, Mark Eastwood, Marc Aubreville, Shan E Ahmed Raza, Fayyaz Minhas, Nasir Rajpoot_  
+> doi: https://doi.org/10.1101/2025.06.07.25329181
 
 ### 🧰 Resources
 - Our Demo website for visualizing mitotic activity networks: [PACMAN Viewer](https://tiademos.dcs.warwick.ac.uk/bokeh_app?demo=pacman)
@@ -74,13 +74,18 @@ python -m pacman.genomic.cnv_anova
 If you use this repository in your work, please cite:
 
 ```bibtex
-@article{your2025pacman,
-  title={Integrative Analysis of Genomic and Morphological Features for Cancer Prognosis},
-  author={Your Name and Others},
-  journal={Bioinformatics / Nature Methods / etc.},
-  year={2025},
-  doi={your-doi-here}
+@article {Jahanifar2025pacman,
+	author = {Jahanifar, Mostafa and Dawood, Muhammad and Zamanitajeddin, Neda and Shephard, Adam and Chohan, Brinder Singh and Bertram, Christof A and Wahab, Noorul and Eastwood, Mark and Aubreville, Marc and Raza, Shan E Ahmed and Minhas, Fayyaz and Rajpoot, Nasir},
+	title = {Pan-Cancer Profiling of Mitotic Topology \& Mitotic Errors: Insights into Prognosis, Genomic Alterations, and Immune Landscape},
+	elocation-id = {2025.06.07.25329181},
+	year = {2025},
+	doi = {10.1101/2025.06.07.25329181},
+	publisher = {Cold Spring Harbor Laboratory Press},
+	URL = {https://www.medrxiv.org/content/early/2025/06/08/2025.06.07.25329181},
+	eprint = {https://www.medrxiv.org/content/early/2025/06/08/2025.06.07.25329181.full.pdf},
+	journal = {medRxiv}
 }
+
 ```
 
 ## 📜 License
