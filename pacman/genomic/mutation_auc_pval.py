@@ -119,9 +119,6 @@ for ci, cancer_type in enumerate(sorted(gene_expr_all["type"].unique())):
 
     # Measure feature-mutation association
     auc_matrix = auc_association_matrix(X, Y)
-    # # drop duplicated mutations
-    # auc_matrix = auc_matrix.loc[~auc_matrix.index.duplicated(keep='first')]
-    # save aux matrix
     auc_matrix.to_csv(save_dir+f"{cancer_type}_auc_matrix.csv")
 
     pval_matrix = permutation_test(X, Y, auc_matrix, n_permutations=500)
