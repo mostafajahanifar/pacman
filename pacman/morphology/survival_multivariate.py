@@ -1,10 +1,17 @@
 import os
+
 import pandas as pd
 from lifelines import CoxPHFitter
 
+from pacman.config import DATA_DIR, RESULTS_DIR, SURV_CANCERS
+
+print(7 * "=" * 7)
+print("Running Multivariate Survival Analysis using AMFs")
+print(7 * "=" * 7)
+
 mit_temp = "all"
 
-save_root = "results_final_all/morphology/multivariate/"
+save_root = f"{RESULTS_DIR}/morphology/survival_multivariate/"
 os.makedirs(save_root, exist_ok=True)
 
 
@@ -78,9 +85,9 @@ def analyze_survival_by_event_and_cancer(df, selected_feats):
     return results
 
 # Function to save the results into an Excel file with proper formatting
-def save_results_to_excel(results):
+def save_results_to_excel(results, save_path):
     # Create an Excel writer object
-    with pd.ExcelWriter(save_root+f'multivariate_analysis_results_{mit_temp}_AMH+HSC.xlsx', engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(save_path, engine='xlsxwriter') as writer:
         for event_type, cancers in results.items():
             # Create a new sheet for each event type
             sheet_name = event_type
@@ -92,7 +99,7 @@ def save_results_to_excel(results):
                 cancer_heading.index = [""]  # Set an empty index for formatting
                 
                 # Append the cancer heading and then the feature rows for that cancer
-                summary['Feature'] = [feat_to_names[feat] for feat in selected_feats]  # Set the Feature column
+                summary['Feature'] = selected_feats  # Set the Feature column
                 
                 # Append the cancer heading and the summary
                 all_cancers_result = pd.concat([all_cancers_result, cancer_heading, summary], axis=0)
@@ -109,24 +116,25 @@ def save_results_to_excel(results):
             worksheet.set_column('B:D', 15)  # Set width for hazard ratio and CI columns
             worksheet.set_column('E:E', 10)  # Set width for p-value column
 
-df = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
+# reading mitotic features
+mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
 
-selected_feats = [
-    "HSC",
-    # "aty_ahotspot_count",
-    # "aty_wsi_ratio",
-    "aty_hotspot_count",
+fixed_features = ["HSC"] # can add other covariates: age, sex, etc.
+AMFs = [
+    "AMAH",
+    "AFW",
+    "AMH",
 ]
 
-feat_to_names = {
-    "aty_ahotspot_count": "Atypical Mitosis in Atypical Hotspot (AMAH)",
-    "aty_hotspot_count": "Atypical Mitosis in mitotic Hotspot (AMH)",
-    "aty_wsi_ratio": "Atypical mitosis Fraction in WSI (AFW)",
-    "HSC": "Hotspot mitosis Count (HSC)",
-}
+experiments_dict = {AMF: [AMF]+fixed_features for AMF in AMFs}
+experiments_dict["all"] = AMFs
+# create selected features list
 
-# Run the analysis
-results = analyze_survival_by_event_and_cancer(df, selected_feats)
+for AMF, selected_feats in experiments_dict.items():
+    print(f"Running multivariate analyses using feature set: {selected_feats}")
+    # Run the analysis
+    results = analyze_survival_by_event_and_cancer(mitosis_feats, selected_feats)
 
-# Save the results in a formatted Excel sheet
-save_results_to_excel(results)
+    # Save the results in a formatted Excel sheet
+    save_path = save_root+f"multivariate_analysis_{mit_temp}_{AMF}.xlsx"
+    save_results_to_excel(results, save_path)
