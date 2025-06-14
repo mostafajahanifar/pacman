@@ -1,58 +1,21 @@
+import argparse
 import os
+
+import gseapy as gp
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from gseapy import dotplot
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.ds import DeseqStats
-import pandas as pd
-import scanpy as sc
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import gseapy as gp
-from gseapy.plot import gseaplot
-import numpy as np
-import seaborn as sns
 from sanbomics.plots import volcano
-from gseapy import dotplot
-from gseapy import enrichment_map
-import networkx as nx
-from adjustText import adjust_text
-import matplotlib.patheffects as pe
-import matplotlib.cm as cm
-import argparse
 
-from sklearn.mixture import GaussianMixture
+from pacman.config import ALL_CANCERS, DATA_DIR, RESULTS_DIR
 
-# Function to find the best separation point using Gaussian Mixture Model
-def median_cut_off(data):
-    return np.median(data)
+print(7*"="*7)
+print(f"Running GSEA Analysis for Atypical Mitoses (Morphological Analyses)")
+print(7*"="*7)
 
-def find_cut_off(data, round_it=True):
-    gmm = GaussianMixture(n_components=2)
-    gmm.fit(data)
-
-    # Get the means of the two Gaussian components
-    means = gmm.means_.flatten()
-    mean1, mean2 = np.sort(means)  # Sort means to ensure correct order
-
-    # Calculate the midpoint (best separation point)
-    separation_point = (mean1 + mean2) / 2
-
-    means = gmm.means_.flatten()
-    variances = gmm.covariances_.flatten()
-    mean1, mean2 = np.sort(means)
-    var1, var2 = variances[np.argsort(means)]
-
-    # Solve for the intersection of the two Gaussian distributions
-    a = 1/(2*var1) - 1/(2*var2)
-    b = mean2/var2 - mean1/var1
-    c = mean1**2 / (2*var1) - mean2**2 / (2*var2) - np.log(np.sqrt(var2/var1))
-
-    # The quadratic formula to find the intersection points
-    roots = np.roots([a, b, c])
-    intersection_point = roots[np.logical_and(roots > mean1, roots < mean2)][0] 
-
-    if round_it:
-        intersection_point = np.round(intersection_point)
-
-    return intersection_point
 
 # setting parameters
 log2fc_thresh = 1
@@ -61,26 +24,28 @@ num_ann = 10
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cancer", type=str, help="Specify the cancer type")
+parser.add_argument("--temperature", default="all", type=str, help="Specify the cancer type")
 args = parser.parse_args()
 cancer_type = args.cancer
+temp = args.temperature
 
 # Reading the data
-mitosis_feats = pd.read_csv('/home/u2070124/lsf_workspace/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
-mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
-mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
-
-mit_signatures = pd.read_csv("gene/data/signatures.csv")["Mitosis Process"].dropna().to_list()
+mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
+mit_signatures = pd.read_csv(os.path.join(DATA_DIR, "signatures.csv"))["Mitosis Process"].dropna().to_list()
+selected_feats = [
+    "AFW",
+    ]
 print("Reading data is done")
 
-# for cancer_type in mitosis_feats["type"].unique():
-counts_org = pd.read_csv(f'gene/data/raw_gene_counts/{cancer_type}_gene_raw_counts.csv')
-# filtering by cancer_type
-print(f"Started working on {cancer_type}")
-cancer_mitosis_feats_all = mitosis_feats[mitosis_feats["type"]==cancer_type]
-selected_feats = [
-"aty_wsi_ratio",
-]
-for temp in ["Cold"]: # ["Cold", "Hot"]:
+items = ALL_CANCERS if args.cancer.lower() == "all" else [args.cancer]
+for cancer_type in items:
+    counts_org = pd.read_csv(os.path.join(DATA_DIR,f'raw_gene_counts/{cancer_type}_gene_raw_counts.csv'))
+    save_root = f"{RESULTS_DIR}/morphology/gsea/{cancer_type}/Mitotic-{temp}/"
+    os.makedirs(save_root, exist_ok=True)
+    # filtering by cancer_type
+    print(f"Started working on {cancer_type}")
+    cancer_mitosis_feats_all = mitosis_feats[mitosis_feats["type"]==cancer_type]
+
     try:
         # keep only mitotic-hot cases
         if temp in ["Cold", "Hot"]:
@@ -99,18 +64,14 @@ for temp in ["Cold"]: # ["Cold", "Hot"]:
         df2_common = df2_common.drop_duplicates(subset='Case ID')
 
         # forming atypical-high and atypical-low groups
-        # feat_med = cancer_mitosis_feats[selected_feats].median().values[0]
-        feat_med = find_cut_off(cancer_mitosis_feats[selected_feats[0]].values.reshape(-1, 1), round_it=False)
+        feat_med = cancer_mitosis_feats[selected_feats].median().values[0]
         if np.isnan(feat_med):
             print(f"Nan Med: {temp} -- {cancer_type}")
             continue
         df1_common["atypical"] = df1_common[selected_feats[0]].apply(lambda x: "High" if x > feat_med else "Low")
-        save_root = f"results_final_all/morphology/dseq_results/{cancer_type}/Mitotic-{temp}/"
-        os.makedirs(save_root, exist_ok=True)
 
         print(f"Mitotic-{temp} group: {len(df1_common)} cases")
         print(df1_common['atypical'].value_counts())
-    
 
         # Extracting metadata df
         metadata = df1_common[['bcr_patient_barcode', 'atypical']]
@@ -144,20 +105,6 @@ for temp in ["Cold"]: # ["Cold", "Hot"]:
         res = res[res.baseMean >= 10] # keep the results with high baseMean
         sigs = res[(res.padj < 0.05) & (abs(res.log2FoldChange) > 0.5)]
         sigs.to_csv(save_root+"deseq_out.csv", index=None)
-
-        # Plotting 2D and 3D PCA
-        print(f"Plotting PCAs ... {cancer_type}")
-        sc.tl.pca(dds)
-        fig = plt.figure(figsize=(3, 3))
-        ax = fig.add_subplot(111)
-        fig = sc.pl.pca(dds, color = 'Condition', size = 30, alpha=0.3, ax=ax, show=False)
-        plt.savefig(save_root+"pca2d.pdf", dpi=300, bbox_inches = 'tight', pad_inches = 0)
-
-        sc.tl.pca(dds, n_comps=3)  # Specify the number of principal components to compute
-        fig = plt.figure(figsize=(4, 4))
-        ax = fig.add_subplot(111, projection='3d')  # Create a 3D subplot
-        sc.pl.pca(dds, color='Condition', size=300, alpha=0.5, ax=ax, show=False, components='all', projection='3d')
-        plt.savefig(save_root+"pca3d.pdf", dpi=300, bbox_inches='tight', pad_inches=0)
 
         # GSEA analysis
         print(f"Performing GSEA ... {cancer_type}")
@@ -222,53 +169,6 @@ for temp in ["Cold"]: # ["Cold", "Hot"]:
                     vmin=2,
                     vmax=5,)
 
-        # # Netowork of top pathways
-        # top_term_num = 10
-        # nodes, edges = enrichment_map(pre_res.res2d, top_term=top_term_num)
-        # G = nx.Graph()
-        # ## Add nodes to the graph
-        # for idx, row in nodes.iterrows():
-        #     G.add_node(idx, **row.to_dict())
-        # ## Add edges to the graph
-        # for idx, row in edges.iterrows():
-        #     G.add_edge(row['src_idx'], row['targ_idx'], **row[['jaccard_coef', 'overlap_coef', 'overlap_genes']].to_dict())
-        # fig, ax = plt.subplots(figsize=(6, 5))
-        # ## init node cooridnates
-        # pos=nx.layout.kamada_kawai_layout(G)
-        # ## draw node
-        # cmap = plt.cm.coolwarm
-        # node_colors = list(nodes.NES)
-        # vmin=-3
-        # vmax=3
-        # nx.draw_networkx_nodes(G,
-        #                     pos=pos,
-        #                     cmap=cmap,
-        #                     node_color=node_colors,
-        #                     node_size=list(nodes.Hits_ratio *1000),
-        #                     vmin=vmin, vmax=vmax,
-        #                     )
-        # cbar = plt.colorbar(cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=vmin, vmax=vmax)), ax=ax,
-        #                     fraction=0.02, pad=0.02
-        #                     )
-        # cbar.ax.set_aspect("auto")  # Increase this number to reduce the width
-        # cbar.set_label('NES')
-        # cbar.outline.set_visible(False)
-        # ## draw node label
-        # texts = []
-        # for node, (x, y) in pos.items():
-        #     texts.append(ax.text(x, y, s=nodes.loc[node, 'Term'], 
-        #                         path_effects=[pe.withStroke(linewidth=2, foreground="white")],
-        #                         horizontalalignment='center', 
-        #                         verticalalignment='center'))
-        # ## Use adjust_text to prevent overlap
-        # adjust_text(texts) 
-        # ## draw edge
-        # edge_weight = nx.get_edge_attributes(G, 'jaccard_coef').values()
-        # nx.draw_networkx_edges(G,
-        #                     pos=pos,
-        #                     width=list(map(lambda x: x*top_term_num, edge_weight)),
-        #                     edge_color='#CDDBD4')
-        # plt.savefig(save_root+"pathways_network.pdf", dpi=300, bbox_inches='tight', pad_inches=0)
     except Exception as e:
         print(100*"*")
         print(f"Something went wrong in {cancer_type}: {e}")

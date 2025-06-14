@@ -2,15 +2,10 @@ import argparse
 import os
 
 import gseapy as gp
-import matplotlib.cm as cm
-import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
 import pandas as pd
-import scanpy as sc
-from adjustText import adjust_text
-from gseapy import dotplot, enrichment_map
+from gseapy import dotplot
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.ds import DeseqStats
 from sanbomics.plots import volcano
