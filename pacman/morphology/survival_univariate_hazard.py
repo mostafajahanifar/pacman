@@ -1,9 +1,16 @@
-import pandas as pd
+import os
+
 import matplotlib.pyplot as plt
-import seaborn as sns
+import pandas as pd
 from lifelines import CoxPHFitter
 
-mit_temp = "Cold"
+from pacman.config import DATA_DIR, RESULTS_DIR, SURV_CANCERS
+
+save_root = f"{RESULTS_DIR}/morphology/survival_univariate_hr/"
+os.makedirs(save_root, exist_ok=True)
+
+
+mit_temp = "all"
 valid_cancer_for_event = {
     "PFI": ['GBMLGG', 'SKCM', 'LUAD', 'HNSC', 'LIHC', 'BLCA', 'COADREAD', 'KIRC', 'BRCA', 'LUSC', 'STAD', 'SARC', 'UCEC', 'PAAD', 'ESCA', 'OV', 'CESC', 'KIRP', 'MESO', 'TGCT', 'UCS', 'ACC', 'PCPG'],
     "OS": ['GBMLGG', 'HNSC', 'LUSC', 'SKCM', 'BLCA', 'KIRC', 'LUAD', 'BRCA', 'STAD', 'LIHC', 'COADREAD', 'PAAD', 'SARC', 'UCEC', 'OV', 'ESCA', 'CESC', 'MESO', 'UCS', 'ACC', 'DLBC'],
@@ -62,7 +69,7 @@ def analyze_univariate_hr_by_event_and_cancer(df, selected_feats):
     return results
 
 # Function to plot hazard ratios with confidence intervals using dot plots (significant using stars)
-def plot_hr_with_ci_dotplots(results, selected_feats, feat_to_names, mode="selected"):
+def plot_hr_with_ci_dotplots(results, selected_feats, mode="selected"):
     for event_type, cancers in results.items():
         cancer_types = list(cancers.keys())
         
@@ -99,7 +106,7 @@ def plot_hr_with_ci_dotplots(results, selected_feats, feat_to_names, mode="selec
                 # if i == num_cancers - 1:
                 #     ax.set_xlabel("HR")
                 if i == 0:
-                    ax.set_title(feat_to_names[feat])
+                    ax.set_title(feat)
                 if j == 0:
                     ax.set_ylabel(cancer, rotation=0, horizontalalignment='right', verticalalignment='center')
 
@@ -130,31 +137,18 @@ def plot_hr_with_ci_dotplots(results, selected_feats, feat_to_names, mode="selec
 
         # Adjust layout and save the plot with mode in filename
         plt.subplots_adjust(wspace=0.1, hspace=0)
-        plt.savefig(f"results_final_all/morphology/univariate/hr_{mode}_{mit_temp}_{event_type}.png", dpi=600, bbox_inches='tight', pad_inches=0.01)
-        # plt.savefig(f"results_final_all/morphology/univariate/hr_{mode}_{mit_temp}_{event_type}.pdf", dpi=600, bbox_inches='tight', pad_inches=0.01)
-
+        plt.savefig(f"{save_root}/hr_{mode}_{mit_temp}_{event_type}.png", dpi=600, bbox_inches='tight', pad_inches=0.01)
 
 # Load your data
-df = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
+mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
 
 selected_feats = [
-    "aty_ahotspot_count",
-    "aty_wsi_ratio",
-    "aty_hotspot_count",
+    "AMAH",
+    "AFW",
+    "ANH",
     "HSC",
-    # "aty_ahotspot_ratio",
-    # "aty_hotspot_ratio",
 ]
 
-feat_to_names = {
-    "aty_ahotspot_count": "AMAH",
-    "aty_ahotspot_ratio": "AFAH", 
-    "aty_hotspot_ratio": "AFH",
-    "aty_hotspot_count": "AMH",
-    "aty_wsi_ratio": "AFW",
-    "HSC": "HSC",
-}
-
 # Run the univariate analysis and plot the hazard ratios with confidence intervals
-univariate_hr_results = analyze_univariate_hr_by_event_and_cancer(df, selected_feats)
-plot_hr_with_ci_dotplots(univariate_hr_results, selected_feats, feat_to_names)
+univariate_hr_results = analyze_univariate_hr_by_event_and_cancer(mitosis_feats, selected_feats)
+plot_hr_with_ci_dotplots(univariate_hr_results, selected_feats)
