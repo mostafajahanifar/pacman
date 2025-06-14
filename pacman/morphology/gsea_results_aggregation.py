@@ -1,15 +1,21 @@
 import os
-import pandas as pd
-from openpyxl import Workbook
 
-subgroup = "Cold"
+import pandas as pd
+
+from pacman.config import ALL_CANCERS, RESULTS_DIR
+
+print(7*"="*7)
+print(f"Running GSEA Results Aggregation (Morphological Analysis)")
+print(7*"="*7)
+
+subgroup = "all"
 
 # Directory containing the cancer types' subdirectories
-base_dir = "results_final_all/morphology/dseq_results"
+base_dir = f"{RESULTS_DIR}/morphology/gsea"
 csv_file = "gseapy.gene_set.prerank.report.csv"
 
 # Create a writer to write results into an Excel file
-output_file = f"results_final_all/morphology/dseq_results/gsea_filtered_results_Mitotic-{subgroup}.xlsx"
+output_file = f"{base_dir}/gsea_filtered_results_Mitotic-{subgroup}.xlsx"
 writer = pd.ExcelWriter(output_file, engine='openpyxl')
 
 # Function to process each cancer type for GSEA results
@@ -30,7 +36,7 @@ def process_gsea_cancer_type(cancer_type, file_path, writer):
         filtered_df.to_excel(writer, sheet_name=cancer_type, index=False)
 
 # Loop through each cancer type's directory
-for cancer_type in sorted(os.listdir(base_dir)):
+for cancer_type in ALL_CANCERS:
     cancer_dir = os.path.join(base_dir, cancer_type, f"Mitotic-{subgroup}")
     
     if os.path.isdir(cancer_dir):
