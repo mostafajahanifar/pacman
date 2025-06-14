@@ -1,99 +1,38 @@
-import pandas as pd
+import os
+
+import matplotlib.pyplot as plt
 import numpy as np
-from scipy import stats
-from utils import featre_to_tick
-from statsmodels.stats.multitest import multipletests
-import matplotlib.pyplot as plt
-import seaborn as sns
-
 import pandas as pd
-import matplotlib.pyplot as plt
+import seaborn as sns
 from scipy import stats
 from statsmodels.stats.multitest import multipletests
 
-def calculate_corr_matrix(df1, df2, method='pearson', pvalue_correction="fdr_bh"):
-    if method not in ['spearman', 'pearson']:
-        raise ValueError("Method must be 'spearman' or 'pearson'")
-    
-    corr_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns, dtype=np.float32)
-    pvalue_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns, dtype=np.float32)
-    for row in df1.columns:
-        for col in df2.columns:
-            df_no_na = pd.concat([df1[row], df2[col]], axis=1)
-            df_no_na = df_no_na.dropna(axis=0, how="any")
-            if method == 'spearman':
-                corr, pvalue = stats.spearmanr(df_no_na[row], df_no_na[col])
-            elif method == 'pearson':
-                corr, pvalue = stats.pearsonr(df_no_na[row], df_no_na[col])
-            corr_matrix.at[row, col] = np.float32(corr)
-            pvalue_matrix.at[row, col] = np.float32(pvalue)
-    # correcting pvalues for the number of genes
-    if pvalue_correction is not None:
-        # Flatten the DataFrame to a 1D array
-        pvals = pvalue_matrix.values.flatten()
-        # Apply the correction
-        corrected_pvals = multipletests(pvals, alpha=0.05, method=pvalue_correction)[1]
-        # Reshape the corrected p-values back to the original shape of pvalue_matrix
-        corrected_pvals_matrix = corrected_pvals.reshape(pvalue_matrix.shape)
-        # Replace the values in the original DataFrame
-        pvalue_matrix.loc[:, :] = corrected_pvals_matrix
+from pacman.config import ALL_CANCERS, DATA_DIR, RESULTS_DIR
+from pacman.utils import calculate_corr_matrix
 
-    return corr_matrix, pvalue_matrix
-
-ALL_CANCERS = ['SARC',
-    'LIHC',
-    'THYM',
-    'ACC',
-    'BRCA',
-    'KICH',
-    'STAD',
-    'BLCA',
-    'THCA',
-    'GBMLGG',
-    'UCEC',
-    'LUAD',
-    'KIRC',
-    'KIRP',
-    'PAAD',
-    'CESC',
-    'PCPG',
-    'MESO',
-    'SKCM',
-    'PRAD',
-    'COADREAD',
-    'ESCA',
-    'LUSC',
-    'HNSC',
-    'OV',
-    'TGCT',
-    'CHOL',
-    'DLBC',
-    'UCS'
- ]
-ALL_CANCERS = sorted(ALL_CANCERS)
-
-cin_sigs = [f"CX{i}" for i in range (1,18)]
+# Setting CIN signiture nnumbers. the exact name of them can be found onlie, doi: 10.1038/s41586-022-04789-9
+# cin_sigs = [f"CX{i}" for i in range (1,18)]
 cin_sigs = [f"CX{i}" for i in [1, 2, 3, 4, 5, 6, 14]]
 
 # keep only columns that are related to mutations
-cin_df = pd.read_excel("gene/data/tcga_cin_signatures.xlsx", sheet_name="ST_18_TCGA_Activities_raw") #"ST_20_TCGA_Activities_scaled"
+cin_df = pd.read_excel(os.path.join(DATA_DIR,"tcga_cin_signatures.xlsx"), sheet_name="ST_18_TCGA_Activities_raw")
 cin_df = cin_df.rename(columns={"Unnamed: 0": "TCGA Participant Barcode"})
 
-atyp_feat = "AMAH"
+atyp_feat = "AMAH" # the atypical mitotic activit measure
 selected_feats = [
     "mean(ND)",
-    "aty_wsi_ratio",
-    "aty_hotspot_count",
-    "aty_hotspot_ratio",
-    "aty_ahotspot_count",
-    "aty_ahotspot_ratio",
+    "AMAH",
+    "AFW",
 ]
 
-mitosis_feats = pd.read_csv('/mnt/gpfs01/lsf-workspace/u2070124/Data/Data/pancancer/tcga_features_final_ClusterByCancer_withAtypical.csv')
+#reading necessary data
+mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
 mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type", "temperature"]+selected_feats]
-mitosis_feats.columns = [featre_to_tick(col) if col not in ["bcr_patient_barcode", "type", "temperature"] else col for col in mitosis_feats.columns]
-mitosis_feats["type"] = mitosis_feats["type"].replace(["COAD", "READ"], "COADREAD")
-mitosis_feats["type"] = mitosis_feats["type"].replace(["GBM", "LGG"], "GBMLGG")
+
+# creating save directory
+save_root = os.path.join(RESULTS_DIR, "morphology", "cin_correlation")
+os.makedirs(save_root, exist_ok=True)
+
 
 all_corr = []
 all_pval = []
@@ -139,8 +78,6 @@ for cancer_type in ALL_CANCERS + ["Mitotic Hot", "Mitotic Cold", "Pan-cancer"]:
 
 corr_matrix = pd.concat(all_corr, axis=1)
 pvalue_matrix = pd.concat(all_pval, axis=1)
-corr_matrix.to_csv(f"results_final_all/morphology/correlations_cin_{atyp_feat}_selected_spearmanFDR_corr.csv")
-pvalue_matrix.to_csv(f"results_final_all/morphology/correlations_cin_{atyp_feat}_selected_spearmanFDR_pval.csv")
 annotations = pvalue_matrix.applymap(lambda x: '*' if x < 0.05 else '') 
 
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(6, 4.4), gridspec_kw={'width_ratios': [corr_matrix.shape[1]-3, 2, 1]})
@@ -176,7 +113,9 @@ for label in heatmap2.get_xticklabels():
 for label in heatmap3.get_xticklabels():
     label.set_rotation(90)
 
-    
 plt.subplots_adjust(wspace=0.03, hspace=0)
 
-plt.savefig(f"results_final_all/morphology/correlations_cin_{atyp_feat}_selected_spearmanFDR.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
+
+plt.savefig(f"{save_root}/cin_correlations_{atyp_feat}_selected_spearmanFDR.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
+corr_matrix.to_csv(f"{save_root}/cin_correlations_{atyp_feat}_selected_spearmanFDR_corr.csv")
+pvalue_matrix.to_csv(f"{save_root}/cin_correlations_{atyp_feat}_selected_spearmanFDR_pval.csv")
