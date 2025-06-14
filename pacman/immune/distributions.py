@@ -36,6 +36,7 @@ selected_feats = [
     "cv(ND)",
     "mean(CL)",
     "mean(HC)",
+    # the following features for morphology analyses
     "AMAH",
     "AFW",
 ]
