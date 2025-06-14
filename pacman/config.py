@@ -45,3 +45,11 @@ ALL_CANCERS = sorted(['SARC',
  ])
 
 SURV_CANCERS = sorted(["ACC", "BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "MESO", "PRAD", "SARC", "TGCT", "THCA", "KICH"])
+
+ETHNICITIES_DICT = {
+    'WHITE': 'White',
+    'BLACK OR AFRICAN AMERICAN': 'Black',
+    'ASIAN': 'Asian',
+    'NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER': 'Pacific\nIslander',
+    'AMERICAN INDIAN OR ALASKA NATIVE': 'Native\nAmerican'
+}

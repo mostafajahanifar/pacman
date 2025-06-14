@@ -1,25 +1,12 @@
-import os, glob
-import pandas as pd
+import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.preprocessing import StandardScaler
-from scipy import stats
-from utils import featre_to_tick, get_colors_dict
-import argparse
-from statsmodels.stats.multitest import multipletests
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import matplotlib.cm
-import seaborn as sns
-
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
-from scipy.stats import mannwhitneyu
-import itertools
-from statannotations.Annotator import Annotator
-from sklearn.preprocessing import MinMaxScaler
 from scipy import stats
 from statsmodels.stats.multitest import multipletests
+
+from pacman.config import ALL_CANCERS, DATA_DIR, RESULTS_DIR
+
 
 def calculate_corr_matrix(df1, df2, method='pearson', pvalue_correction="fdr_bh"):
     if method not in ['spearman', 'pearson']:
