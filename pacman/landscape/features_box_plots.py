@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from pacman.config import DATA_DIR, ETHNICITIES_DICT, RESULTS_DIR
+from pacman.config import ALL_CANCERS, DATA_DIR, ETHNICITIES_DICT, RESULTS_DIR
 from pacman.utils import get_colors_dict
 
 # Load the data
@@ -15,8 +15,7 @@ feats_list = ["HSC", "AFW", "AMAH"] # aty_wsi_ratio, aty_ahotspot_count
 
 # Filter the dataframe to include relevant columns and remove invalid cancers
 df = mitosis_feats[['type', 'temperature', 'gender', 'race'] + feats_list]
-invalid_cancers = ['LAML', 'UVM']
-df = df[~df['type'].isin(invalid_cancers)]
+df = df[df["type"].isin(ALL_CANCERS)]
 
 # Filter the race column to keep only certain values and shorten the names
 ethnicities = list(ETHNICITIES_DICT.keys())
@@ -94,4 +93,5 @@ for feat in feats_list:
     plt.subplots_adjust(wspace=0.02)
 
     save_dir = os.path.join(RESULTS_DIR, "landscape")
+    os.makedirs(save_dir, exist_ok=True)
     plt.savefig(f"{save_dir}/boxplot_{feat}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
