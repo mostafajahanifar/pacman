@@ -22,7 +22,7 @@ pval_thresh = 1e-3
 num_ann = 10
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--cancer", type=str, help="Specify the cancer type")
+parser.add_argument("--cancer", type=str, default="all", help="Specify the cancer type")
 args = parser.parse_args()
 
 # Reading the data

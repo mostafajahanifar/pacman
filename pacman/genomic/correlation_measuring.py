@@ -16,14 +16,14 @@ selected_feats = [
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Correlation Analysis between Gene expression and Methylation data"
+        description="Correlation Measuring between mitotic features and other information."
     )
     parser.add_argument(
         "--mode",
         type=str,
         default="expression",
         choices=["mrna", "methylation", "expression"],
-        help="Mode of analysis: 'mrna' for mRNA, 'methylation' for methylation, 'expression' for both",
+        help="Mode of analysis: 'mrna' or 'expression' for mRNA, 'methylation' for methylation",
     )
     parser.add_argument(
         "--method",

@@ -14,7 +14,8 @@ from matplotlib.offsetbox import AnchoredText
 from tqdm import tqdm
 
 from pacman.config import DATA_DIR, RESULTS_DIR, SURV_CANCERS
-from pacman.survival.utils import add_at_risk_counts, survival_stratification_analysis
+from pacman.survival.utils import (add_at_risk_counts,
+                                   survival_stratification_analysis)
 
 warnings.filterwarnings("ignore")
 
