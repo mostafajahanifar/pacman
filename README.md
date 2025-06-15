@@ -23,11 +23,11 @@ This repository contains the complete codebase used in the associated publicatio
 - [Mitosis subtyping dataset](https://zenodo.org/records/15390543)
 
 ### 📊 Features
-- 🧬 Genomic correlation, CNV, mutation, and methylation analysis
-
-- 🏥 Mitotic morphology analyses such as survival and GSEA
-
-- 📈 Exploring the mitotic landscape of cancer
+- **Mitotic/Genomic profiling**: correlation analysis, CNV, mutations, and methylation information.
+- **Mitotic morphology**: relationship of atypical mitoses with chromosomal instability, visual distributions, and GSEA insights.
+- **Survival analysis**: univariate and multivariate modeling, Kaplan–Meier plots, and c-index evaluation.
+- **Mitotic–immune relationships**: associations between immune phenotypes and mitotic activity
+- **Mitotic landscape exploration**: systematic profiling of mitotic characteristics across cancer types.
 
 ---
 
