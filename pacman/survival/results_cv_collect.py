@@ -4,6 +4,10 @@ import pandas as pd
 
 from pacman.config import DATA_DIR, RESULTS_DIR, SURV_CANCERS
 
+print(7*"="*7)
+print("Collecting results of corss-validated survival analyses")
+print(7*"="*7)
+
 censor_at = 120
 cv_experiment = f"{RESULTS_DIR}/survival/kmplots_cv/"
 

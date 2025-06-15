@@ -7,6 +7,10 @@ import seaborn as sns
 from pacman.config import ALL_CANCERS, DATA_DIR, ETHNICITIES_DICT, RESULTS_DIR
 from pacman.utils import get_colors_dict
 
+print(7*"="*7)
+print("Generating box plots of features")
+print(7*"="*7)
+
 # Load the data
 mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
 

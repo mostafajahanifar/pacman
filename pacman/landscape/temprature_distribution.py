@@ -6,6 +6,10 @@ import pandas as pd
 
 from pacman.config import ALL_CANCERS, DATA_DIR, ETHNICITIES_DICT, RESULTS_DIR
 
+print(7*"="*7)
+print("Ploting Mitotic-Hot and Cold distributions")
+print(7*"="*7)
+
 # Load the data
 mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
 

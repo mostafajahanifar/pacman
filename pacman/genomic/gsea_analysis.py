@@ -13,7 +13,7 @@ from sanbomics.plots import volcano
 from pacman.config import ALL_CANCERS, DATA_DIR, RESULTS_DIR
 
 print(7*"="*7)
-print(f"Running GSEA Analysis")
+print(f"Running GSEA Analysis on Mitotic-Hot vs Cold groups")
 print(7*"="*7)
 
 # setting parameters

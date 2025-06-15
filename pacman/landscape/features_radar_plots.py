@@ -21,6 +21,10 @@ from matplotlib.transforms import Affine2D
 
 from pacman.config import ALL_CANCERS, DATA_DIR, RESULTS_DIR
 
+print(7*"="*7)
+print("Radar plots of mitotic features")
+print(7*"="*7)
+
 
 def radar_factory(num_vars, frame='circle'):
     """Create a radar chart with `num_vars` axes.

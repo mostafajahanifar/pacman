@@ -10,6 +10,10 @@ from statsmodels.stats.multitest import multipletests
 from pacman.config import ALL_CANCERS, DATA_DIR, RESULTS_DIR
 from pacman.utils import calculate_corr_matrix
 
+print(7*"="*7)
+print("Measuring correlation of mitotic activity and CIN signatures")
+print(7*"="*7)
+
 # Setting CIN signiture nnumbers. the exact name of them can be found onlie, doi: 10.1038/s41586-022-04789-9
 # cin_sigs = [f"CX{i}" for i in range (1,18)]
 cin_sigs = [f"CX{i}" for i in [1, 2, 3, 4, 5, 6, 14]]
