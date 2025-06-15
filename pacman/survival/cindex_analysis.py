@@ -10,6 +10,10 @@ from tqdm import tqdm
 
 from pacman.config import DATA_DIR, RESULTS_DIR
 
+print(7 * "=" * 7)
+print("Comparing C-indices of different features for survival ranking")
+print(7 * "=" * 7)
+
 PERM_N = 1000 # Number of permutations for significance testing
 
 def adjust_p_values(pval_df, alpha=0.05, method="fdr_bh"):

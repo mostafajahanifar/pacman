@@ -9,7 +9,7 @@ from lifelines.statistics import logrank_test
 from matplotlib.offsetbox import AnchoredText
 
 from pacman.config import ALL_CANCERS, DATA_DIR, RESULTS_DIR, SURV_CANCERS
-from pacman.utils import add_at_risk_counts
+from pacman.survival.utils import add_at_risk_counts
 
 print(7 * "=" * 7)
 print("Running Survival Analysis for Morphological features in Mitotic Hot/Cold Groups")

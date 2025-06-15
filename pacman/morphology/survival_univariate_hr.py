@@ -6,8 +6,13 @@ from lifelines import CoxPHFitter
 
 from pacman.config import DATA_DIR, RESULTS_DIR, SURV_CANCERS
 
+print(7 * "=" * 7)
+print("Univariate survival analyses using CoxPH model")
+print(7 * "=" * 7)
+
 save_root = f"{RESULTS_DIR}/morphology/survival_univariate_hr/"
 os.makedirs(save_root, exist_ok=True)
+
 
 
 mit_temp = "all"

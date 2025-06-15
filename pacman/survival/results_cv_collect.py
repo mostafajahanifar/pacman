@@ -1,15 +1,11 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import os
-import glob
-from pathlib import Path
-import numpy as np
-from utils import get_colors_dict
 
+import pandas as pd
+
+from pacman.config import DATA_DIR, RESULTS_DIR, SURV_CANCERS
 
 censor_at = 120
-cv_experiment = f'results_final_all/survival_essential/CV_KM_10years_AFW_direct'
+cv_experiment = f"{RESULTS_DIR}/survival/kmplots_cv/"
 
 results_dict = {'censoring': [],
                 'event_type': [],
@@ -22,19 +18,17 @@ results_dict = {'censoring': [],
 
 event_types = ['DFI', 'PFI', 'OS', 'DSS']
 for event_type in event_types:
-    cancer_types = [["ACC"], ["BLCA"], ["BRCA"], ["CESC"], ["COAD", "READ"], ["ESCA"], ["GBM", "LGG"], ["HNSC"], ["KIRC"], ["KIRP"], ["KICH"], ["LIHC"], ["LUAD"], ["LUSC"], ["OV"], ["PAAD"], ["SKCM"], ["STAD"], ["UCEC"], ["MESO"], ["PRAD"], ["SARC"], ["TGCT"], ["THCA"]]
-
     csv_files = {}
     sig_p_values = {}
-    for cancer_type in cancer_types:
+    for cancer_type in SURV_CANCERS:
         results_dict['censoring'].append(censor_at)
         results_dict['event_type'].append(event_type)
-        results_dict['cancer_type'].append(''.join(cancer_type).upper())
+        results_dict['cancer_type'].append(cancer_type)
         
 
         # find the p-value related to this experiment
-        directory = f"{cv_experiment}/CV_{cancer_type}_Corrected/" # cv_results_{cancer_type}_{event_type}_censor{censor_at}_*.csv"
-        km_path_pattern = f"cv_results_{cancer_type}_{event_type}_censor{censor_at}"
+        directory = f"{cv_experiment}/{cancer_type}/"
+        km_path_pattern = f"kmplot_cv_{cancer_type}_{event_type}_censor{censor_at}"
         # Walk through the directory
         p_value = None
         csv_df = None
@@ -60,7 +54,7 @@ for event_type in event_types:
 
 
 results_df = pd.DataFrame(results_dict)
-results_df.to_excel(f'{cv_experiment}/aggregated_results.xlsx')
+results_df.to_excel(f'{cv_experiment}/cv_aggregated_results.xlsx')
 
 df = results_df
 pivot_mean = df.pivot(index='cancer_type', columns='event_type', values='cindex_mean')
@@ -81,8 +75,4 @@ mean_row = pivot_mean[(pivot_success == 1) & (pivot_significant == 1)].mean().ap
 formatted_df.loc['Average'] = mean_row
 
 # Save the DataFrame to an Excel file
-formatted_df.to_excel(f'{cv_experiment}/summary_table.xlsx')
-
-latex_table = formatted_df.to_latex()
-with open(f'{cv_experiment}/summary_table.tex', "w") as file:
-    file.write(latex_table)
+formatted_df.to_excel(f'{cv_experiment}/cv_summary_table.xlsx')

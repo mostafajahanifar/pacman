@@ -10,7 +10,7 @@ from lifelines import KaplanMeierFitter
 from lifelines.statistics import logrank_test
 
 from pacman.config import DATA_DIR, RESULTS_DIR, SURV_CANCERS
-from pacman.utils import add_at_risk_counts
+from pacman.survival.utils import add_at_risk_counts
 
 print(7 * "=" * 7)
 print("Running Survival Analysis for Immune Hot/Cold Groups")
