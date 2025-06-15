@@ -1,15 +1,16 @@
 import os
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from lifelines.utils import concordance_index
 import seaborn as sns
-import matplotlib.pyplot as plt
+from lifelines.utils import concordance_index
+from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 
-from statsmodels.stats.multitest import multipletests
+from pacman.config import DATA_DIR, RESULTS_DIR
 
 PERM_N = 1000 # Number of permutations for significance testing
-
 
 def adjust_p_values(pval_df, alpha=0.05, method="fdr_bh"):
     """
@@ -143,49 +144,55 @@ def compute_cindex_and_significance(df, features, time_col, event_col, type_col,
     sig_df = adjust_p_values(sig_df, alpha=alpha, method="fdr_bh")
     return cindex_df, sig_df
 
-save_dir = "results_final_all/survival_essential/cindex/"
+save_dir = f"{RESULTS_DIR}/survival/cindex/"
 os.makedirs(save_dir, exist_ok=True)
 
 features = ["HSC", "mean(ND)", "cv(ND)","mean(CL)","mean(HC)", "AMH", "AMAH", "AFW"] # "cv(ND)","per99(ND)", ,"std(CL)","per99(CL)","std(HC)","per10(HC)"
-event_col = 'DSS'
-time_col = f'{event_col}.time'
 censor_at = 120
 
-discov_val_feats_path = '/mnt/lab-temp-it-services/u2070124/Code/mitsa/gene/data/ST1-tcga_mtfs.xlsx'
-discov_df = pd.read_excel(discov_val_feats_path)
-
-discov_df = discov_df.dropna(subset=[event_col, time_col])
-discov_df[event_col] = discov_df[event_col].astype(int)
-discov_df[time_col] = (discov_df[time_col]/30.4).astype(int)
-# valid_types = ["BLCA", "BRCA", "CESC", "COAD READ", "ESCA", "GBM LGG", "HNSC", "KICH", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "THCA", "PRAD", "SARC", "TGCT", "ACC", "MESO"]
-
-if event_col=="PFI":
-    valid_types = ["BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KICH", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "THCA", "PRAD", "SARC", "TGCT", "ACC", "MESO", "THYM", "CHOL"]
-elif event_col=="DFI":
-    valid_types = ["BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SARC", "STAD", "TGCT", "UCEC"]
-elif event_col=="OS":
-    valid_types = ["BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KICH", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "SARC", "ACC", "MESO", "CHOL"]
-elif event_col=="DSS":
-    valid_types = ["BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "SARC", "ACC", "MESO", "CHOL"]
-
-discov_df = discov_df[discov_df["type"].isin(valid_types)]
-
-discov_df= discov_df.sort_values(by="type", ascending=True)
-
-if censor_at > 0:
-    discov_df.loc[discov_df[time_col] > censor_at, event_col] = 0
-    discov_df.loc[discov_df[time_col] > censor_at, time_col] = censor_at
+for event_col in ["DSS", "PFI", "OS", "DFI"]:
+    time_col = f'{event_col}.time'
 
 
-c_index_table, significance_table = compute_cindex_and_significance(
-    discov_df, features, time_col, event_col, "type"
-)
+    mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
 
-num_cancer = len(discov_df["type"].unique())
-fig_size = (7, 0.24*num_cancer + 1)
-print(f"Figure size: {fig_size}")
-fig, ax = plot_cindex_heatmap_with_significance(c_index_table, significance_table, figsize=fig_size, cmap="coolwarm")
-ax.set_title(f"C-index for {event_col} (* : permutation test's p-value<0.05)")
-fig.savefig(save_dir+f"cindex_heatmap_{event_col}_censor{censor_at}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
-c_index_table.to_csv(save_dir+f"cindex_table_{event_col}_censor{censor_at}.csv", index=True)
-significance_table.to_csv(save_dir+f"cindex-significance_table_{event_col}_censor{censor_at}.csv", index=True)
+    mitosis_feats = mitosis_feats.dropna(subset=[event_col, time_col])
+    mitosis_feats[event_col] = mitosis_feats[event_col].astype(int)
+    mitosis_feats[time_col] = (mitosis_feats[time_col]/30.4).astype(int)
+
+    if event_col=="PFI":
+        valid_types = ["BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KICH", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "THCA", "PRAD", "SARC", "TGCT", "ACC", "MESO", "THYM", "CHOL"]
+    elif event_col=="DFI":
+        valid_types = ["BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SARC", "STAD", "TGCT", "UCEC"]
+    elif event_col=="OS":
+        valid_types = ["BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KICH", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "SARC", "ACC", "MESO", "CHOL"]
+    elif event_col=="DSS":
+        valid_types = ["BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "SARC", "ACC", "MESO", "CHOL"]
+
+    mitosis_feats = mitosis_feats[mitosis_feats["type"].isin(valid_types)]
+
+    mitosis_feats= mitosis_feats.sort_values(by="type", ascending=True)
+
+    if censor_at > 0:
+        mitosis_feats.loc[mitosis_feats[time_col] > censor_at, event_col] = 0
+        mitosis_feats.loc[mitosis_feats[time_col] > censor_at, time_col] = censor_at
+
+
+    c_index_table, significance_table = compute_cindex_and_significance(
+        mitosis_feats, features, time_col, event_col, "type"
+    )
+
+    # # Sort columns from highest to lowest average absolute deviation from 0.5
+    # col_order = (c_index_table - 0.5).abs().mean().sort_values(ascending=False).index.tolist()
+    # c_index_table = c_index_table[col_order]
+    # significance_table = significance_table[col_order]
+
+
+    num_cancer = len(mitosis_feats["type"].unique())
+    fig_size = (7, 0.24*num_cancer + 1)
+    print(f"Figure size: {fig_size}")
+    fig, ax = plot_cindex_heatmap_with_significance(c_index_table, significance_table, figsize=fig_size, cmap="coolwarm")
+    ax.set_title(f"C-index for {event_col} (* : permutation test's p-value<0.05)")
+    fig.savefig(save_dir+f"cindex_heatmap_{event_col}_censor{censor_at}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
+    c_index_table.to_csv(save_dir+f"cindex_table_{event_col}_censor{censor_at}.csv", index=True)
+    significance_table.to_csv(save_dir+f"pvalue_table_{event_col}_censor{censor_at}.csv", index=True)
