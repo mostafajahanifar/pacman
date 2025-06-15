@@ -40,16 +40,22 @@ git clone https://github.com/yourusername/pacman.git
 cd pacman
 ```
 
-### 2. Set up the environment
+### 2. Install dependencies
+#### (Optional but recommended) Create and activate a virtual environment
 ```bash
-conda env create -f environment.yml
-conda activate pacman
+python -m venv pacman
+source pacman/bin/activate  # On Windows: pacman\Scripts\activate
+```
+
+#### Install dependencies
+```bash
+pip install -r requirements.txt
 ```
 
 ### 3. Download the data
-To run the experiment, you will need external data tables on genomic, immune, or mitotic attributes. You can download selected or all of these dataset files from Zenodo by running:
+To run the experiments, you will need external data tables on genomic, immune, or mitotic attributes. You can download selected or all of these dataset files from Zenodo by running:
 ```bash
-python pacman/download_from_zenodo.py
+python pacman/download_data.py
 ```
 You will be prompted to select which files to download. You can eather select the files by number or choose to download `all` files.
 
