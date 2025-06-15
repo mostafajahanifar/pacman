@@ -1,8 +1,12 @@
 import numpy as np
 import pandas as pd
 from lifelines import CoxPHFitter
-from lifelines.plotting import (is_latex_enabled, move_spines, remove_spines,
-                                remove_ticks)
+from lifelines.plotting import (
+    is_latex_enabled,
+    move_spines,
+    remove_spines,
+    remove_ticks,
+)
 from lifelines.statistics import logrank_test
 from lifelines.utils import concordance_index
 
@@ -15,7 +19,7 @@ def find_optimal_threshold(
     min_pct: float = 0.05,
     min_group_size: int = 10,
     min_events: int = 5,
-    verbose: bool = False
+    verbose: bool = False,
 ):
     """
     Find an optimal threshold on a continuous risk factor by maximizing separation
@@ -47,12 +51,16 @@ def find_optimal_threshold(
     if not (len(rf) == len(tte) == len(evt)):
         # If rf had NaNs removed, drop corresponding indices in tte, evt
         # But since we reset index on rf after dropna, better drop any where original rf was NaN:
-        raise ValueError("After dropping NA in risk_factor, lengths do not match time/event arrays.")
+        raise ValueError(
+            "After dropping NA in risk_factor, lengths do not match time/event arrays."
+        )
 
     # If too few samples overall, bail out
     if len(rf) < 2 * min_group_size:
         if verbose:
-            print(f"[find_optimal_threshold] Too few samples ({len(rf)}) for meaningful split.")
+            print(
+                f"[find_optimal_threshold] Too few samples ({len(rf)}) for meaningful split."
+            )
         return None
 
     # Determine candidate thresholds in the central range
@@ -61,7 +69,9 @@ def find_optimal_threshold(
     if lower_q >= upper_q:
         # No range to search
         if verbose:
-            print(f"[find_optimal_threshold] Quantile range invalid: lower_q={lower_q}, upper_q={upper_q}.")
+            print(
+                f"[find_optimal_threshold] Quantile range invalid: lower_q={lower_q}, upper_q={upper_q}."
+            )
         return None
 
     thresholds = np.linspace(lower_q, upper_q, n_thresholds)
@@ -90,15 +100,16 @@ def find_optimal_threshold(
         # Perform log-rank test
         try:
             res = logrank_test(
-                tte[mask_low], tte[mask_high],
+                tte[mask_low],
+                tte[mask_high],
                 event_observed_A=evt[mask_low],
-                event_observed_B=evt[mask_high]
+                event_observed_B=evt[mask_high],
             )
         except Exception:
             continue
 
-        stat = getattr(res, 'test_statistic', None)
-        pval = getattr(res, 'p_value', None)
+        stat = getattr(res, "test_statistic", None)
+        pval = getattr(res, "p_value", None)
         if stat is None or pval is None:
             continue
 
@@ -108,18 +119,25 @@ def find_optimal_threshold(
         # Here we use absolute value:
         stat_abs = abs(stat)
 
-        if stat_abs > best_stat or (np.isclose(stat_abs, best_stat) and pval < (best_p if best_p is not None else np.inf)):
+        if stat_abs > best_stat or (
+            np.isclose(stat_abs, best_stat)
+            and pval < (best_p if best_p is not None else np.inf)
+        ):
             best_stat = stat_abs
             best_p = pval
             best_thr = thr
 
     if best_thr is None:
         if verbose:
-            print("[find_optimal_threshold] No valid threshold found under constraints.")
+            print(
+                "[find_optimal_threshold] No valid threshold found under constraints."
+            )
         return None
 
     if verbose:
-        print(f"[find_optimal_threshold] optimal threshold: {best_thr:.4f} → test_statistic={best_stat:.3f}, p-value={best_p:.3g}")
+        print(
+            f"[find_optimal_threshold] optimal threshold: {best_thr:.4f} → test_statistic={best_stat:.3f}, p-value={best_p:.3g}"
+        )
 
     return best_thr
 
@@ -136,6 +154,7 @@ def normalize_train_test(train: pd.DataFrame, val: pd.DataFrame, feature_cols: l
     train_norm[feature_cols] = (train[feature_cols] - means) / stds
     val_norm[feature_cols] = (val[feature_cols] - means) / stds
     return train_norm, val_norm
+
 
 def approximate_hr_by_event_rate(T_lower, E_lower, T_upper, E_upper):
     """
@@ -166,6 +185,7 @@ def approximate_hr_by_event_rate(T_lower, E_lower, T_upper, E_upper):
             return np.inf
     return rate_upper / rate_lower
 
+
 def survival_stratification_analysis(
     train_df: pd.DataFrame,
     val_df: pd.DataFrame,
@@ -173,8 +193,8 @@ def survival_stratification_analysis(
     time_col: str,
     event_col: str,
     censor_at: float = None,
-    cutoff_mode='mean',   # 'mean', 'median', 'quantile', 'optimal', or numeric
-    cutoff_point: float = -1
+    cutoff_mode="mean",  # 'mean', 'median', 'quantile', 'optimal', or numeric
+    cutoff_point: float = -1,
 ):
     """
     Train (or handle single feature) on train_df, apply to val_df:
@@ -186,7 +206,7 @@ def survival_stratification_analysis(
     - Compute p-value from log-rank test.
     - Compute hazard ratios:
         * multiple features: from CoxPH fitted on train
-        * single feature: approximate via event-rate ratio between high vs low groups in train or val? 
+        * single feature: approximate via event-rate ratio between high vs low groups in train or val?
           Here we compute from validation groups (so reflects test data).
     Returns:
         T_lower_test: pd.Series of times for low-risk group in val_df
@@ -207,7 +227,9 @@ def survival_stratification_analysis(
     # Ensure time_col and event_col not in feature_cols
     feature_cols = [f for f in feature_cols if f not in (time_col, event_col)]
     if len(feature_cols) == 0:
-        raise ValueError("No feature columns provided after removing time/event columns.")
+        raise ValueError(
+            "No feature columns provided after removing time/event columns."
+        )
 
     required_cols = feature_cols + [time_col, event_col]
 
@@ -252,7 +274,9 @@ def survival_stratification_analysis(
     else:
         # Multiple features: fit CoxPH on train_norm
         try:
-            cph = CoxPHFitter(baseline_estimation_method='breslow', penalizer=0.001, l1_ratio=0.5)
+            cph = CoxPHFitter(
+                baseline_estimation_method="breslow", penalizer=0.001, l1_ratio=0.5
+            )
             cph.fit(train_norm, duration_col=time_col, event_col=event_col)
         except Exception as e:
             raise RuntimeError(f"Failed to fit CoxPH on training data: {e}")
@@ -268,19 +292,17 @@ def survival_stratification_analysis(
             cutoff_value = float(cutoff_mode)
         else:
             mode = str(cutoff_mode).lower()
-            if mode == 'mean':
+            if mode == "mean":
                 cutoff_value = partial_risk_train.mean()
-            elif mode == 'median':
+            elif mode == "median":
                 cutoff_value = partial_risk_train.median()
-            elif mode == 'quantile':
+            elif mode == "quantile":
                 cutoff_value = partial_risk_train.quantile(0.60)
-            elif mode == 'optimal':
+            elif mode == "optimal":
                 # assume find_optimal_threshold exists
                 try:
                     cutoff_value = find_optimal_threshold(
-                        partial_risk_train,
-                        train_norm[time_col],
-                        train_norm[event_col]
+                        partial_risk_train, train_norm[time_col], train_norm[event_col]
                     )
                 except Exception as e:
                     raise RuntimeError(f"Error in find_optimal_threshold: {e}")
@@ -303,7 +325,9 @@ def survival_stratification_analysis(
     # 9. Compute concordance index on validation
     try:
         # higher risk score => worse survival, so use -partial_risk_test
-        cindex_test = concordance_index(val_norm[time_col], -partial_risk_test, val_norm[event_col])
+        cindex_test = concordance_index(
+            val_norm[time_col], -partial_risk_test, val_norm[event_col]
+        )
     except Exception as e:
         raise RuntimeError(f"Failed to compute C-index on validation: {e}")
 
@@ -317,25 +341,36 @@ def survival_stratification_analysis(
     # 11. Compute hazard ratios
     if len(feature_cols) == 1:
         # Approximate HR from event rates on validation groups
-        hr_value = approximate_hr_by_event_rate(T_lower_test, E_lower_test, T_upper_test, E_upper_test)
+        hr_value = approximate_hr_by_event_rate(
+            T_lower_test, E_lower_test, T_upper_test, E_upper_test
+        )
         test_hazard_ratios = pd.Series({feature_cols[0]: hr_value})
     else:
         # Extract from fitted CoxPH on train
         # lifelines stores hazard_ratios_ as pd.Series
         test_hazard_ratios = cph.hazard_ratios_
 
-    return T_lower_test, T_upper_test, E_lower_test, E_upper_test, cindex_test, pvalue_test, test_hazard_ratios
+    return (
+        T_lower_test,
+        T_upper_test,
+        E_lower_test,
+        E_upper_test,
+        cindex_test,
+        pvalue_test,
+        test_hazard_ratios,
+    )
+
 
 def add_at_risk_counts(
     *fitters,
-    labels= None,
+    labels=None,
     rows_to_show=None,
     ypos=-0.6,
     xticks=None,
     ax=None,
     colors=None,
     at_risk_count_from_start_of_period=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Add a table of counts below a survival or cumulative hazard plot showing how many individuals were
@@ -546,37 +581,39 @@ def add_at_risk_counts(
         ticklabels.append(lbl)
 
     if colors is None:
-        colors = ['black'] * len(fitters)
+        colors = ["black"] * len(fitters)
 
     ax2.set_xticklabels([])
     # Text positioning
     line_height = 0.11  # adjust spacing between rows
     for xi, label in zip(ax2.get_xticks(), ticklabels):
-        lines = label.split('\n')
+        lines = label.split("\n")
         for li, line in enumerate(lines):
-            if line=="At risk":
+            if line == "At risk":
                 line = "Number at risk"
                 ax2.text(
-                xi,
-                ax2_ypos - li * line_height,
-                line,
-                color="black",
-                ha="right",
-                va="top",
-                fontsize=kwargs.get("fontsize", plt.rcParams["font.size"])
+                    xi,
+                    ax2_ypos - li * line_height,
+                    line,
+                    color="black",
+                    ha="right",
+                    va="top",
+                    fontsize=kwargs.get("fontsize", plt.rcParams["font.size"]),
                 )
                 continue
-            if len(line)==0:
+            if len(line) == 0:
                 continue
-            color_idx = (li-1) % len(colors)  # match group order (li+1 because the first line is empty)
+            color_idx = (li - 1) % len(
+                colors
+            )  # match group order (li+1 because the first line is empty)
             ax2.text(
                 xi,
                 ax2_ypos - li * line_height,
                 line,
                 color=colors[color_idx],
-                ha="right" if xi==0 else "center",
+                ha="right" if xi == 0 else "center",
                 va="top",
-                fontsize=kwargs.get("fontsize", plt.rcParams["font.size"])
+                fontsize=kwargs.get("fontsize", plt.rcParams["font.size"]),
             )
 
     return ax

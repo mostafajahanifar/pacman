@@ -17,31 +17,33 @@ from pacman.utils import calculate_corr_matrix, get_colors_dict
 cancer_colors = get_colors_dict()
 
 
-def plot_clustermap(corr_matrix, plvalue_matrix, mode, limit_row_cols=True, sig_threshold=0.05):
+def plot_clustermap(
+    corr_matrix, plvalue_matrix, mode, limit_row_cols=True, sig_threshold=0.05
+):
     # Set parameters based on the mode
-    if mode == 'top':
+    if mode == "top":
         threshold = 0.2
-        threshold_percentage_rows = 10# 30
-        threshold_percentage_cols = 0# 10
+        threshold_percentage_rows = 10  # 30
+        threshold_percentage_cols = 0  # 10
         max_col_num = 13
         max_row_num = 25
         fig_size = (10, 10)
         dendo_ratio = (0.1, 0.1)
-        cbar_pos= (0.02, 0.83, 0.02, 0.15)
+        cbar_pos = (0.02, 0.83, 0.02, 0.15)
         y_ticks = True
         astrisk = "*"
-    elif mode == 'topTop':
+    elif mode == "topTop":
         threshold = 0.2
-        threshold_percentage_rows = 10# 45
-        threshold_percentage_cols = 0# 15
+        threshold_percentage_rows = 10  # 45
+        threshold_percentage_cols = 0  # 15
         max_col_num = 8
         max_row_num = 10
         fig_size = (3, 3)
         dendo_ratio = (0.1, 0.1)
-        cbar_pos= (0.75, 0.15, 0.02, 0.15)
+        cbar_pos = (0.75, 0.15, 0.02, 0.15)
         y_ticks = True
         astrisk = "*"
-    elif mode == 'all':
+    elif mode == "all":
         threshold = 0.05
         threshold_percentage_rows = 10
         threshold_percentage_cols = 0
@@ -49,15 +51,15 @@ def plot_clustermap(corr_matrix, plvalue_matrix, mode, limit_row_cols=True, sig_
         max_col_num = 30
         fig_size = (10, 13)
         dendo_ratio = (0.1, 0.07)
-        cbar_pos= (0.02, 0.83, 0.02, 0.15)
+        cbar_pos = (0.02, 0.83, 0.02, 0.15)
         y_ticks = "auto"
         astrisk = "."
     else:
         raise ValueError("Invalid mode. Choose either 'top' or 'topTop'.")
 
     df_filtered = corr_matrix.copy()
-    df_filtered[df_filtered.abs()<threshold] = np.nan
-    df_filtered[plvalue_matrix>sig_threshold] = np.nan
+    df_filtered[df_filtered.abs() < threshold] = np.nan
+    df_filtered[plvalue_matrix > sig_threshold] = np.nan
 
     non_nan_counts_rows = df_filtered.count(axis=1)
     total_cells_rows = df_filtered.shape[1]
@@ -67,11 +69,19 @@ def plot_clustermap(corr_matrix, plvalue_matrix, mode, limit_row_cols=True, sig_
     total_cells_cols = df_filtered.shape[0]
     percentage_non_nan_cols = (non_nan_counts_cols / total_cells_cols) * 100
 
-    filtered_corr_matrix_rows = corr_matrix[percentage_non_nan_rows > threshold_percentage_rows]
-    filtered_plvalue_matrix_rows = plvalue_matrix[percentage_non_nan_rows > threshold_percentage_rows]
+    filtered_corr_matrix_rows = corr_matrix[
+        percentage_non_nan_rows > threshold_percentage_rows
+    ]
+    filtered_plvalue_matrix_rows = plvalue_matrix[
+        percentage_non_nan_rows > threshold_percentage_rows
+    ]
 
-    final_corr_matrix = filtered_corr_matrix_rows.loc[:, percentage_non_nan_cols > threshold_percentage_cols]
-    final_plvalue_matrix = filtered_plvalue_matrix_rows.loc[:, percentage_non_nan_cols > threshold_percentage_cols]
+    final_corr_matrix = filtered_corr_matrix_rows.loc[
+        :, percentage_non_nan_cols > threshold_percentage_cols
+    ]
+    final_plvalue_matrix = filtered_plvalue_matrix_rows.loc[
+        :, percentage_non_nan_cols > threshold_percentage_cols
+    ]
 
     # Add the following lines to limit the number of rows and columns based on the sum of absolute correlation values
     if final_corr_matrix.shape[0] > max_row_num and limit_row_cols:
@@ -88,8 +98,17 @@ def plot_clustermap(corr_matrix, plvalue_matrix, mode, limit_row_cols=True, sig_
 
     significant = final_plvalue_matrix < sig_threshold
 
-    g = sns.clustermap(final_corr_matrix, cmap="coolwarm",  method="ward", yticklabels=y_ticks, vmin=-0.75, vmax=0.75,
-                       figsize=fig_size, dendrogram_ratio=dendo_ratio, cbar_pos=cbar_pos)
+    g = sns.clustermap(
+        final_corr_matrix,
+        cmap="coolwarm",
+        method="ward",
+        yticklabels=y_ticks,
+        vmin=-0.75,
+        vmax=0.75,
+        figsize=fig_size,
+        dendrogram_ratio=dendo_ratio,
+        cbar_pos=cbar_pos,
+    )
 
     row_labels = g.dendrogram_row.reordered_ind
     col_labels = g.dendrogram_col.reordered_ind
@@ -99,27 +118,39 @@ def plot_clustermap(corr_matrix, plvalue_matrix, mode, limit_row_cols=True, sig_
     for i, row_label in enumerate(row_labels):
         for j, col_label in enumerate(col_labels):
             if significant.iloc[row_label, col_label]:
-                g.ax_heatmap.text(j+0.5, i+0.5, astrisk, ha='center', va='center', color='black')
+                g.ax_heatmap.text(
+                    j + 0.5, i + 0.5, astrisk, ha="center", va="center", color="black"
+                )
 
     return g.fig
 
-def populate_results_dict(res_dict, cancer_type, gene_group, overall_pearsonr, overall_spearmanr, pears_corrs=None, spears_corrs=None):
+
+def populate_results_dict(
+    res_dict,
+    cancer_type,
+    gene_group,
+    overall_pearsonr,
+    overall_spearmanr,
+    pears_corrs=None,
+    spears_corrs=None,
+):
     res_dict["type"].append(cancer_type)
     res_dict["gene_group"].append(gene_group)
     res_dict["overall_pearsonr"].append(overall_pearsonr)
     res_dict["overall_spearmanr"].append(overall_spearmanr)
-    if pears_corrs!=None and spears_corrs!=None:
+    if pears_corrs != None and spears_corrs != None:
         res_dict["mean_pears_corrs"].append(np.mean(pears_corrs))
         res_dict["std_pears_corrs"].append(np.std(pears_corrs))
         res_dict["mean_spears_corrs"].append(np.mean(spears_corrs))
         res_dict["std_spears_corrs"].append(np.std(spears_corrs))
     return res_dict
 
+
 def single_canonical(X, Y, method="PLSCanonical"):
     # Initialize CCA
-    if method=="PLSCanonical":
+    if method == "PLSCanonical":
         plsca = PLSCanonical(n_components=2)
-    elif method=="CCA":
+    elif method == "CCA":
         plsca = CCA(n_components=2)
     else:
         raise ValueError("unknown method")
@@ -136,6 +167,7 @@ def single_canonical(X, Y, method="PLSCanonical"):
     yrot = plsca.y_rotations_
 
     return overall_pearsonr, overall_spearmanr, xrot, yrot, X_r, Y_r
+
 
 def k_fold_canonical(X, Y, method="PLSCanonical", num_folds=5, stratify_by_type=None):
     # Initialize CCA or PLSCanonical
@@ -194,11 +226,23 @@ def k_fold_canonical(X, Y, method="PLSCanonical", num_folds=5, stratify_by_type=
     avr_x_rot = np.mean(np.stack(x_rots, axis=2), axis=2)
     avr_y_rot = np.mean(np.stack(y_rots, axis=2), axis=2)
 
-    return overall_pearsonr, overall_spearmanr, pears_corrs, spears_corrs, avr_x_rot, avr_y_rot, X_r_vals, Y_r_vals
+    return (
+        overall_pearsonr,
+        overall_spearmanr,
+        pears_corrs,
+        spears_corrs,
+        avr_x_rot,
+        avr_y_rot,
+        X_r_vals,
+        Y_r_vals,
+    )
+
 
 def plot_comp_corr(X_r_train, Y_r_train, title, color_list=None):
     fig = plt.figure(figsize=(5, 5))
-    plt.scatter(X_r_train[:, 0], Y_r_train[:, 0], marker="o", s=5, alpha=0.2, color=color_list)
+    plt.scatter(
+        X_r_train[:, 0], Y_r_train[:, 0], marker="o", s=5, alpha=0.2, color=color_list
+    )
     plt.xlabel("SNA features canonical component 1")
     plt.ylabel("Gene expresions canonical component 1")
     plt.title(title)
@@ -206,95 +250,156 @@ def plot_comp_corr(X_r_train, Y_r_train, title, color_list=None):
     plt.yticks(())
     return fig
 
+
 def plot_rot_map(xrot, yrot, x_names, y_names):
     def decide_alignment(x, y):
-        if x<0 and y<0:
+        if x < 0 and y < 0:
             h, v = "right", "top"
-        if x<0 and y>0:
+        if x < 0 and y > 0:
             h, v = "right", "bottom"
-        if x>0 and y>0:
+        if x > 0 and y > 0:
             h, v = "left", "bottom"
-        if x>0 and y<0:
+        if x > 0 and y < 0:
             h, v = "left", "top"
-        return h,v
+        return h, v
+
     fig, ax = plt.subplots(figsize=(4, 4))
     # plt.xlim((-1.01,1.01))
     # plt.ylim((-1.01,1.01))
-    plt.xlim((-0.76,0.76))
-    plt.ylim((-0.76,0.76))
+    plt.xlim((-0.76, 0.76))
+    plt.ylim((-0.76, 0.76))
 
     # first draw circles
-    circle1 = plt.Circle((0, 0), 0.1, fill=False, color='black', alpha=0.5)
-    circle2 = plt.Circle((0, 0), 0.5, fill=False, color='black', alpha=0.5)
-    circle3 = plt.Circle((0, 0), 1.0, fill=False, color='black', alpha=0.5)
+    circle1 = plt.Circle((0, 0), 0.1, fill=False, color="black", alpha=0.5)
+    circle2 = plt.Circle((0, 0), 0.5, fill=False, color="black", alpha=0.5)
+    circle3 = plt.Circle((0, 0), 1.0, fill=False, color="black", alpha=0.5)
     ax.add_patch(circle1)
     ax.add_patch(circle2)
     # ax.add_patch(circle3)
-    plt.axhline(0, color='black', alpha=0.25)
-    plt.axvline(0, color='black', alpha=0.25)
+    plt.axhline(0, color="black", alpha=0.25)
+    plt.axvline(0, color="black", alpha=0.25)
     viz_thresh = 0.2
     for vi, var in enumerate(xrot):
         var = np.clip(var, -0.7, 0.7)
         # print(var)
-        plt.arrow(0,0,var[0],var[1], color='red', alpha=0.1, head_width=0)
-        plt.scatter(var[0],var[1], color='red', alpha=0.4,)
+        plt.arrow(0, 0, var[0], var[1], color="red", alpha=0.1, head_width=0)
+        plt.scatter(
+            var[0],
+            var[1],
+            color="red",
+            alpha=0.4,
+        )
         h, v = decide_alignment(var[0], var[1])
-        if abs(var[0])>viz_thresh or abs(var[1])>viz_thresh:
-            plt.text(var[0],var[1],x_names[vi], color='red', horizontalalignment=h, verticalalignment=v)
+        if abs(var[0]) > viz_thresh or abs(var[1]) > viz_thresh:
+            plt.text(
+                var[0],
+                var[1],
+                x_names[vi],
+                color="red",
+                horizontalalignment=h,
+                verticalalignment=v,
+            )
 
     for vi, var in enumerate(yrot):
-        plt.arrow(0,0,var[0],var[1], color='blue', alpha=0.1, head_width=0)
-        plt.scatter(var[0],var[1], color='blue', alpha=0.4,)
+        plt.arrow(0, 0, var[0], var[1], color="blue", alpha=0.1, head_width=0)
+        plt.scatter(
+            var[0],
+            var[1],
+            color="blue",
+            alpha=0.4,
+        )
         h, v = decide_alignment(var[0], var[1])
-        if abs(var[0])>viz_thresh or abs(var[1])>viz_thresh:
-            plt.text(var[0],var[1],y_names[vi], color='blue', horizontalalignment=h, verticalalignment=v)
+        if abs(var[0]) > viz_thresh or abs(var[1]) > viz_thresh:
+            plt.text(
+                var[0],
+                var[1],
+                y_names[vi],
+                color="blue",
+                horizontalalignment=h,
+                verticalalignment=v,
+            )
 
     ax.set_xlabel("CCA Dimension 1")
     ax.set_ylabel("CCA Dimension 2")
-    ax.set_aspect('equal')
+    ax.set_aspect("equal")
     return fig
 
+
 selected_feats = [
-"mean(ND)",
-"cv(ND)",
-"mean(CL)",
-"mean(HC)",
+    "mean(ND)",
+    "cv(ND)",
+    "mean(CL)",
+    "mean(HC)",
 ]
 
 
-if __name__ == '__main__':
-    print(7*"="*7)
+if __name__ == "__main__":
+    print(7 * "=" * 7)
     print("Running Canonical Correlation Analysis")
-    print(7*"="*7)
-    parser = argparse.ArgumentParser(description='Gene to mitosis features analysis')
-    parser.add_argument('--cancer_types', nargs='+', default=['all'])
+    print(7 * "=" * 7)
+    parser = argparse.ArgumentParser(description="Gene to mitosis features analysis")
+    parser.add_argument("--cancer_types", nargs="+", default=["all"])
     args = parser.parse_args()
     cancer_types = args.cancer_types
 
-    #reading necessary data
+    # reading necessary data
     gene_cnv_all = pd.read_csv(os.path.join(DATA_DIR, "tcga_all_gene_cnv.csv"))
     mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
     signatures = pd.read_csv(os.path.join(DATA_DIR, "signatures.csv"))
-    gene_expr_all = pd.read_csv(os.path.join(DATA_DIR, "tcga_all_gene_expressions_normalized.csv"))
+    gene_expr_all = pd.read_csv(
+        os.path.join(DATA_DIR, "tcga_all_gene_expressions_normalized.csv")
+    )
 
     # setting the saving directories
     canonical_save_root = os.path.join(RESULTS_DIR, "genomic/canonical_corr/")
 
     if cancer_types != ["all"]:
         print(f"Working on cancer types: {cancer_types}")
-        mitosis_feats = mitosis_feats.loc[mitosis_feats['type'].isin(cancer_types)] # cancer types should be given in input argparse
+        mitosis_feats = mitosis_feats.loc[
+            mitosis_feats["type"].isin(cancer_types)
+        ]  # cancer types should be given in input argparse
     else:
-        mitosis_feats = mitosis_feats.loc[mitosis_feats['type'].isin(ALL_CANCERS)]
+        mitosis_feats = mitosis_feats.loc[mitosis_feats["type"].isin(ALL_CANCERS)]
         print("Working on ALL cancer types together")
-    mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type"]+selected_feats]
-    cancer_types_name = ''.join(cancer_types).upper()
-    gene_groups = signatures.columns.tolist() # ["Mitosis","Mitosis Process", "Tumor Suppressor","Oncogenes","Protein Kinases"] #
+    mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type"] + selected_feats]
+    cancer_types_name = "".join(cancer_types).upper()
+    gene_groups = (
+        signatures.columns.tolist()
+    )  # ["Mitosis","Mitosis Process", "Tumor Suppressor","Oncogenes","Protein Kinases"] #
 
     # results place holders
-    CCA_res_dict = {'type': [], "gene_group": [], "overall_pearsonr": [], "overall_spearmanr": [], "mean_pears_corrs": [], "std_pears_corrs": [], "mean_spears_corrs": [], "std_spears_corrs": []}
-    PLS_res_dict = {'type': [], "gene_group": [], "overall_pearsonr": [], "overall_spearmanr": [], "mean_pears_corrs": [], "std_pears_corrs": [], "mean_spears_corrs": [], "std_spears_corrs": []}
-    single_PLS_res_dict = {'type': [], "gene_group": [], "overall_pearsonr": [], "overall_spearmanr": []}
-    single_CCA_res_dict = {'type': [], "gene_group": [], "overall_pearsonr": [], "overall_spearmanr": []}
+    CCA_res_dict = {
+        "type": [],
+        "gene_group": [],
+        "overall_pearsonr": [],
+        "overall_spearmanr": [],
+        "mean_pears_corrs": [],
+        "std_pears_corrs": [],
+        "mean_spears_corrs": [],
+        "std_spears_corrs": [],
+    }
+    PLS_res_dict = {
+        "type": [],
+        "gene_group": [],
+        "overall_pearsonr": [],
+        "overall_spearmanr": [],
+        "mean_pears_corrs": [],
+        "std_pears_corrs": [],
+        "mean_spears_corrs": [],
+        "std_spears_corrs": [],
+    }
+    single_PLS_res_dict = {
+        "type": [],
+        "gene_group": [],
+        "overall_pearsonr": [],
+        "overall_spearmanr": [],
+    }
+    single_CCA_res_dict = {
+        "type": [],
+        "gene_group": [],
+        "overall_pearsonr": [],
+        "overall_spearmanr": [],
+    }
 
     for gene_group in gene_groups:
         print(f"Started working on {gene_group}")
@@ -302,52 +407,149 @@ if __name__ == '__main__':
         gene_list = signatures[gene_group].dropna().to_list()
         # gene_list = [gene+'_rnaseq' for gene in gene_list]
         gene_list = [gene for gene in gene_list if gene in gene_expr_all.columns]
-        gene_expr = gene_expr_all[["case_id"]+gene_list]
+        gene_expr = gene_expr_all[["case_id"] + gene_list]
 
         # Find the common case names between mitosis features and gene expressions
-        common_cases = pd.Series(list(set(mitosis_feats['bcr_patient_barcode']).intersection(set(gene_expr['case_id']))))
+        common_cases = pd.Series(
+            list(
+                set(mitosis_feats["bcr_patient_barcode"]).intersection(
+                    set(gene_expr["case_id"])
+                )
+            )
+        )
         ## Keep only the rows with the common case names in both dataframes
-        df1_common = mitosis_feats[mitosis_feats['bcr_patient_barcode'].isin(common_cases)]
-        df2_common = gene_expr[gene_expr['case_id'].isin(common_cases)]
+        df1_common = mitosis_feats[
+            mitosis_feats["bcr_patient_barcode"].isin(common_cases)
+        ]
+        df2_common = gene_expr[gene_expr["case_id"].isin(common_cases)]
         # ## remove the _rnaseq tail from the name of the
         # df2_common.columns = [col.strip('_rnaseq') if col != 'case_id' else col for col in df2_common.columns]
         ## Sort the dataframes based on 'case_name'
-        df1_common = df1_common.sort_values('bcr_patient_barcode')
-        df2_common = df2_common.sort_values('case_id')
+        df1_common = df1_common.sort_values("bcr_patient_barcode")
+        df2_common = df2_common.sort_values("case_id")
         ## Remove duplicate rows based on 'case_name' in df2_common
-        df2_common = df2_common.drop_duplicates(subset='case_id')
+        df2_common = df2_common.drop_duplicates(subset="case_id")
         ## find the case type for stratification in the pan-cancer scenario
-        stratify_by_type = df1_common['type'].to_list() if cancer_types_name=="ALL" else None
+        stratify_by_type = (
+            df1_common["type"].to_list() if cancer_types_name == "ALL" else None
+        )
         ## find the color of points in pan-cancer scenario
-        color_list = [cancer_colors[cancer] for cancer in df1_common["type"]] if cancer_types_name=="ALL" else None
+        color_list = (
+            [cancer_colors[cancer] for cancer in df1_common["type"]]
+            if cancer_types_name == "ALL"
+            else None
+        )
         ## keep only feature and gene data
-        X = df1_common.drop(columns=["bcr_patient_barcode", "type"])#.values
-        Y = df2_common.drop(columns='case_id')#.values
+        X = df1_common.drop(columns=["bcr_patient_barcode", "type"])  # .values
+        Y = df2_common.drop(columns="case_id")  # .values
         ## drop the gene column if the is any nan in it
         Y = Y.dropna(axis=1, how="any")
 
         # Do K-fold cross-validation canonical correlation analysis
-        canon_save_path = os.path.join(canonical_save_root, cancer_types_name, gene_group)
+        canon_save_path = os.path.join(
+            canonical_save_root, cancer_types_name, gene_group
+        )
         os.makedirs(canon_save_path, exist_ok=True)
 
-        overall_pearsonr, overall_spearmanr, pears_corrs, spears_corrs, cca_x_rot, cca_y_rot, X_r_vals, Y_r_vals = k_fold_canonical(X, Y, method="CCA", num_folds=5, stratify_by_type=stratify_by_type)
-        CCA_res_dict = populate_results_dict(CCA_res_dict, cancer_types_name, gene_group, overall_pearsonr, overall_spearmanr, pears_corrs, spears_corrs)
-        fig = plot_comp_corr(X_r_vals, Y_r_vals, f"{gene_group} (r={np.mean(pears_corrs):.2f}±{np.std(pears_corrs):.2f})", color_list)
+        (
+            overall_pearsonr,
+            overall_spearmanr,
+            pears_corrs,
+            spears_corrs,
+            cca_x_rot,
+            cca_y_rot,
+            X_r_vals,
+            Y_r_vals,
+        ) = k_fold_canonical(
+            X, Y, method="CCA", num_folds=5, stratify_by_type=stratify_by_type
+        )
+        CCA_res_dict = populate_results_dict(
+            CCA_res_dict,
+            cancer_types_name,
+            gene_group,
+            overall_pearsonr,
+            overall_spearmanr,
+            pears_corrs,
+            spears_corrs,
+        )
+        fig = plot_comp_corr(
+            X_r_vals,
+            Y_r_vals,
+            f"{gene_group} (r={np.mean(pears_corrs):.2f}±{np.std(pears_corrs):.2f})",
+            color_list,
+        )
         # add legend in case of pan-cancer scenario
         if cancer_types_name == "ALL":
-            legend_elements = [mpatches.Patch(color=color, label=domain) for domain, color in cancer_colors.items()]
-            fig.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(0.9, 0.92), ncol=2)
-        fig.savefig(os.path.join(canon_save_path, f"cv_cca_pearson_{cancer_types_name}_{gene_group}.png"), dpi=600, bbox_inches = 'tight', pad_inches = 0)
-        fig = plot_rot_map(cca_x_rot, cca_y_rot, df1_common.columns[2:], df2_common.columns[2:])
-        fig.savefig(os.path.join(canon_save_path, f"cv_cca_rotplot_{cancer_types_name}_{gene_group}.pdf"), dpi=600, bbox_inches = 'tight', pad_inches = 0)
-        fig.savefig(os.path.join(canon_save_path, f"cv_cca_rotplot_{cancer_types_name}_{gene_group}.png"), dpi=600, bbox_inches = 'tight', pad_inches = 0)
+            legend_elements = [
+                mpatches.Patch(color=color, label=domain)
+                for domain, color in cancer_colors.items()
+            ]
+            fig.legend(
+                handles=legend_elements,
+                loc="upper left",
+                bbox_to_anchor=(0.9, 0.92),
+                ncol=2,
+            )
+        fig.savefig(
+            os.path.join(
+                canon_save_path, f"cv_cca_pearson_{cancer_types_name}_{gene_group}.png"
+            ),
+            dpi=600,
+            bbox_inches="tight",
+            pad_inches=0,
+        )
+        fig = plot_rot_map(
+            cca_x_rot, cca_y_rot, df1_common.columns[2:], df2_common.columns[2:]
+        )
+        fig.savefig(
+            os.path.join(
+                canon_save_path, f"cv_cca_rotplot_{cancer_types_name}_{gene_group}.pdf"
+            ),
+            dpi=600,
+            bbox_inches="tight",
+            pad_inches=0,
+        )
+        fig.savefig(
+            os.path.join(
+                canon_save_path, f"cv_cca_rotplot_{cancer_types_name}_{gene_group}.png"
+            ),
+            dpi=600,
+            bbox_inches="tight",
+            pad_inches=0,
+        )
 
-        overall_pearsonr, overall_spearmanr, xrot, yrot, X_r, Y_r = single_canonical(X, Y, method="CCA")
-        single_CCA_res_dict = populate_results_dict(single_CCA_res_dict, cancer_types_name, gene_group, overall_pearsonr, overall_spearmanr)
-        fig = plot_comp_corr(X_r, Y_r, f"CCA-{gene_group}-Pearson corr.: {overall_pearsonr:.2f}")
-        fig.savefig(os.path.join(canon_save_path, f"single_cca_pearson_{cancer_types_name}_{gene_group}.png"), dpi=600, bbox_inches = 'tight', pad_inches = 0)
+        overall_pearsonr, overall_spearmanr, xrot, yrot, X_r, Y_r = single_canonical(
+            X, Y, method="CCA"
+        )
+        single_CCA_res_dict = populate_results_dict(
+            single_CCA_res_dict,
+            cancer_types_name,
+            gene_group,
+            overall_pearsonr,
+            overall_spearmanr,
+        )
+        fig = plot_comp_corr(
+            X_r, Y_r, f"CCA-{gene_group}-Pearson corr.: {overall_pearsonr:.2f}"
+        )
+        fig.savefig(
+            os.path.join(
+                canon_save_path,
+                f"single_cca_pearson_{cancer_types_name}_{gene_group}.png",
+            ),
+            dpi=600,
+            bbox_inches="tight",
+            pad_inches=0,
+        )
         fig = plot_rot_map(xrot, yrot, df1_common.columns[2:], df2_common.columns[2:])
-        fig.savefig(os.path.join(canon_save_path, f"single_cca_rotplot_{cancer_types_name}_{gene_group}.pdf"), dpi=600, bbox_inches = 'tight', pad_inches = 0)
+        fig.savefig(
+            os.path.join(
+                canon_save_path,
+                f"single_cca_rotplot_{cancer_types_name}_{gene_group}.pdf",
+            ),
+            dpi=600,
+            bbox_inches="tight",
+            pad_inches=0,
+        )
 
     # save dataframes to csv files
     CCA_res_df = pd.DataFrame(CCA_res_dict)

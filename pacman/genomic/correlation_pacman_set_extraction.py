@@ -4,10 +4,10 @@ import pandas as pd
 
 from pacman.config import ALL_CANCERS, DATA_DIR, RESULTS_DIR
 
-print(7*"="*7)
+print(7 * "=" * 7)
 print("Finding PACMAN set as highly correlated genes with mitosis features")
 print("This should be run after correlation_measuring.py with mode=expression")
-print(7*"="*7)
+print(7 * "=" * 7)
 
 corr_thresh = 0.6
 print(f"Using correlation threshold: {corr_thresh}")
@@ -23,23 +23,23 @@ pacman_set = set([])
 # Walk through each subdirectory to find PACMAN genes
 for root, dirs, files in os.walk(base_directory):
     # Check if both corr_p.csv and corr_r.csv exist in the directory
-    if 'corr_r.csv' in files and 'corr_p.csv' in files:
+    if "corr_r.csv" in files and "corr_p.csv" in files:
         # Get the subdirectory name
         subdirectory_name = os.path.basename(root)
 
-        temp_df = df[df['type']==subdirectory_name]
+        temp_df = df[df["type"] == subdirectory_name]
         # Load correlation and p-value files
-        corr_r_df = pd.read_csv(os.path.join(root, 'corr_r.csv'))
-        corr_p_df = pd.read_csv(os.path.join(root, 'corr_p.csv'))
+        corr_r_df = pd.read_csv(os.path.join(root, "corr_r.csv"))
+        corr_p_df = pd.read_csv(os.path.join(root, "corr_p.csv"))
 
-        corr_r_df=corr_r_df.set_index("Unnamed: 0")
-        corr_p_df=corr_p_df.set_index("Unnamed: 0")
+        corr_r_df = corr_r_df.set_index("Unnamed: 0")
+        corr_p_df = corr_p_df.set_index("Unnamed: 0")
 
         # make the corr_r equal to 0 for the genes with non-significant p-value
-        corr_r_df[corr_p_df>0.01] = 0
+        corr_r_df[corr_p_df > 0.01] = 0
 
         corr_r_max = corr_r_df.abs().max(axis=0)
-        selected_genes = corr_r_max[corr_r_max>corr_thresh].index
+        selected_genes = corr_r_max[corr_r_max > corr_thresh].index
 
         pacman_set = pacman_set.union(set(selected_genes))
 
@@ -48,7 +48,7 @@ for root, dirs, files in os.walk(base_directory):
 
 # Now, extract correlation measures for the PACMAN set
 output_file = f"{base_directory}/pacman_genes_correlation_aggregated.xlsx"
-writer = pd.ExcelWriter(output_file, engine='openpyxl')
+writer = pd.ExcelWriter(output_file, engine="openpyxl")
 gene_list = sorted(list(pacman_set))
 
 
@@ -65,7 +65,6 @@ def process_correlation_cancer_type(cancer_type, corr_file, pval_file, writer):
     # select only genes from the list
     corr_matrix = corr_matrix.loc[gene_list]
     pval_matrix = pval_matrix.loc[gene_list]
-
 
     # Sort genes based on the maximum correlation across features
     corr_r_matrix_rank = corr_matrix.copy()
@@ -85,7 +84,9 @@ def process_correlation_cancer_type(cancer_type, corr_file, pval_file, writer):
             pval_value = pval_matrix.at[gene, feature]
             formatted_value = f"{corr_value:.2f}"  # Format to 2 decimal places
             if pval_value < 0.05:
-                formatted_value = f"{formatted_value}*"  # Add star for significant values
+                formatted_value = (
+                    f"{formatted_value}*"  # Add star for significant values
+                )
             formatted_corr_matrix.at[gene, feature] = formatted_value
 
     # Write the formatted correlation matrix to an Excel sheet

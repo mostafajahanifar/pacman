@@ -12,8 +12,10 @@ from pacman.config import DATA_DIR, RESULTS_DIR
 base_dir = os.path.join(RESULTS_DIR, "genomic/cnv_anova")
 
 # Create a writer to write results into an Excel file
-output_file = os.path.join(RESULTS_DIR, "genomic/cnv_anova/gene_cnv_anova_aggregated.xlsx")
-writer = pd.ExcelWriter(output_file, engine='openpyxl')
+output_file = os.path.join(
+    RESULTS_DIR, "genomic/cnv_anova/gene_cnv_anova_aggregated.xlsx"
+)
+writer = pd.ExcelWriter(output_file, engine="openpyxl")
 
 
 # Function to get color based on F-statistics
@@ -23,18 +25,27 @@ def get_color_from_fstat(fstat_value, cmap, norm):
     r, g, b, _ = [int(255 * v) for v in rgba]  # Ignore alpha value
     return f"{r:02x}{g:02x}{b:02x}"
 
+
 # Function to apply formatting to p-value table based on F-statistics
 def format_pval_table(fstat_matrix, pval_matrix, sheet, cmap, norm):
     # Write the gene names to the first column and format the p-value table
-    for row_idx, gene in enumerate(pval_matrix.index, start=2):  # start=2 because row 1 is header
-        sheet.cell(row=row_idx, column=1).value = gene  # Write gene name in the first column
-        for col_idx, feature in enumerate(pval_matrix.columns, start=2):  # start=2 because col 1 is index
+    for row_idx, gene in enumerate(
+        pval_matrix.index, start=2
+    ):  # start=2 because row 1 is header
+        sheet.cell(row=row_idx, column=1).value = (
+            gene  # Write gene name in the first column
+        )
+        for col_idx, feature in enumerate(
+            pval_matrix.columns, start=2
+        ):  # start=2 because col 1 is index
             pval_value = pval_matrix.at[gene, feature]
             fstat_value = fstat_matrix.at[gene, feature]
 
             # Get the color based on the F-statistics value
             color_hex = get_color_from_fstat(fstat_value, cmap, norm)
-            fill = PatternFill(start_color=color_hex, end_color=color_hex, fill_type="solid")
+            fill = PatternFill(
+                start_color=color_hex, end_color=color_hex, fill_type="solid"
+            )
 
             # Write the p-value (already -log transformed) into the Excel cell
             cell = sheet.cell(row=row_idx, column=col_idx)
@@ -45,6 +56,7 @@ def format_pval_table(fstat_matrix, pval_matrix, sheet, cmap, norm):
 # Colormap for F-statistics ("YlGn" colormap) with vmin=1 and vmax=50
 cmap = plt.get_cmap("YlGn")
 norm = mcolors.Normalize(vmin=1, vmax=50)
+
 
 # Function to process each cancer type for ANOVA results
 def process_anova_cancer_type(cancer_type, fstat_file, pval_file, writer, cmap, norm):
@@ -57,7 +69,7 @@ def process_anova_cancer_type(cancer_type, fstat_file, pval_file, writer, cmap, 
     pval_matrix = pval_matrix.T
 
     # Filter genes with at least one p-value < 0.01
-    significant_genes = pval_matrix[pval_matrix < 0.01].dropna(how='all').index
+    significant_genes = pval_matrix[pval_matrix < 0.01].dropna(how="all").index
     fstat_matrix = fstat_matrix.loc[significant_genes]
     pval_matrix = pval_matrix.loc[significant_genes]
 
@@ -82,6 +94,7 @@ def process_anova_cancer_type(cancer_type, fstat_file, pval_file, writer, cmap, 
     # Format and write the p-value table with color formatting
     format_pval_table(fstat_matrix, pval_matrix, sheet, cmap, norm)
 
+
 # Loop through each cancer type's directory
 for cancer_type in sorted(os.listdir(base_dir)):
     cancer_dir = os.path.join(base_dir, cancer_type)
@@ -91,7 +104,9 @@ for cancer_type in sorted(os.listdir(base_dir)):
         pval_file = os.path.join(cancer_dir, f"cnv_annova-p_{cancer_type}.csv")
 
         if os.path.exists(fstat_file) and os.path.exists(pval_file):
-            process_anova_cancer_type(cancer_type, fstat_file, pval_file, writer, cmap, norm)
+            process_anova_cancer_type(
+                cancer_type, fstat_file, pval_file, writer, cmap, norm
+            )
 
 # Save the Excel file
 writer.close()

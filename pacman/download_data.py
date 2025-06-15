@@ -9,8 +9,9 @@ print(7 * "=" * 7)
 print("Downloading data necessary for experiments from Zenodo")
 print(7 * "=" * 7)
 
-ZENODO_RECORD_ID = "15603656" # check this one
+ZENODO_RECORD_ID = "15603656"  # check this one
 API_URL = f"https://zenodo.org/api/records/{ZENODO_RECORD_ID}"
+
 
 def list_files(token=None):
     params = {}
@@ -21,6 +22,7 @@ def list_files(token=None):
     files = resp.json().get("files", [])
     return [(f["key"], f["links"]["self"]) for f in files]
 
+
 def download_file(url, target_dir, filename, token=None):
     params = {"access_token": token} if token else {}
     resp = requests.get(url, params=params, stream=True)
@@ -30,6 +32,7 @@ def download_file(url, target_dir, filename, token=None):
         for chunk in resp.iter_content(chunk_size=8192):
             fp.write(chunk)
     print(f"✅ Saved: {path}")
+
 
 def main():
     token = os.getenv("ZENODO_TOKEN", None)
@@ -55,7 +58,6 @@ def main():
             print("Invalid input. Exiting.")
             sys.exit(1)
 
-
     for i in picks:
         if i < 1 or i > len(files):
             print(f"❌ Invalid file number: {i}")
@@ -65,6 +67,7 @@ def main():
         download_file(url, DATA_DIR, name, token)
 
     print("\nAll done!")
+
 
 if __name__ == "__main__":
     main()

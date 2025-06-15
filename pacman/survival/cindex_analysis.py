@@ -14,7 +14,8 @@ print(7 * "=" * 7)
 print("Comparing C-indices of different features for survival ranking")
 print(7 * "=" * 7)
 
-PERM_N = 1000 # Number of permutations for significance testing
+PERM_N = 1000  # Number of permutations for significance testing
+
 
 def adjust_p_values(pval_df, alpha=0.05, method="fdr_bh"):
     """
@@ -36,16 +37,18 @@ def adjust_p_values(pval_df, alpha=0.05, method="fdr_bh"):
     significant = np.full(pvals.shape, False)
     significant[mask] = corrected[0]  # corrected[0] is the reject list
 
-    sig_matrix = pd.DataFrame(significant.reshape(pval_df.shape), 
-                              index=pval_df.index, 
-                              columns=pval_df.columns)
+    sig_matrix = pd.DataFrame(
+        significant.reshape(pval_df.shape), index=pval_df.index, columns=pval_df.columns
+    )
     return sig_matrix
 
 
-def bootstrap_c_index(group, feature, time_col, event_col, n_bootstrap=1000, alpha=0.05):
+def bootstrap_c_index(
+    group, feature, time_col, event_col, n_bootstrap=1000, alpha=0.05
+):
     """
     Bootstrap-based significance test to check if c-index is significantly different from 0.5.
-    
+
     Returns:
         mean_cindex, p_value
     """
@@ -60,7 +63,9 @@ def bootstrap_c_index(group, feature, time_col, event_col, n_bootstrap=1000, alp
 
     for _ in range(n_bootstrap):
         # idx = np.random.choice(n, n, replace=True)
-        idx = list(rng.choice(np.nonzero(EE==0)[0],size = len(EE)-np.sum(EE),replace=True))+list(rng.choice(np.nonzero(EE==1)[0],size = np.sum(EE),replace=True))
+        idx = list(
+            rng.choice(np.nonzero(EE == 0)[0], size=len(EE) - np.sum(EE), replace=True)
+        ) + list(rng.choice(np.nonzero(EE == 1)[0], size=np.sum(EE), replace=True))
         try:
             ci = concordance_index(times[idx], scores[idx], events[idx])
             boot_cis.append(ci)
@@ -71,11 +76,9 @@ def bootstrap_c_index(group, feature, time_col, event_col, n_bootstrap=1000, alp
     mean_ci = np.mean(boot_cis)
 
     # Two-sided non-parametric test
-    p_value = 2 * min(
-        np.mean(boot_cis <= 0.5),
-        np.mean(boot_cis >= 0.5)
-    )
+    p_value = 2 * min(np.mean(boot_cis <= 0.5), np.mean(boot_cis >= 0.5))
     return mean_ci, p_value
+
 
 def permutation_c_index_test(group, feature, time_col, event_col, n_permutations=1000):
     times = group[time_col].values
@@ -99,7 +102,9 @@ def permutation_c_index_test(group, feature, time_col, event_col, n_permutations
     return obs_ci, p_value
 
 
-def plot_cindex_heatmap_with_significance(df, sig_matrix, figsize=(10, 6), cmap="viridis"):
+def plot_cindex_heatmap_with_significance(
+    df, sig_matrix, figsize=(10, 6), cmap="viridis"
+):
     """
     Plots a heatmap of C-index values with * for statistically significant cells.
 
@@ -115,15 +120,26 @@ def plot_cindex_heatmap_with_significance(df, sig_matrix, figsize=(10, 6), cmap=
     annot = annot.where(~sig_matrix, annot + "*")  # add asterisk
 
     fig, ax = plt.subplots(figsize=figsize)
-    sns.heatmap(df, annot=annot, fmt="", cmap=cmap, linewidths=0.5, linecolor='gray',
-                vmin=0.2, vmax=0.8, ax=ax)
+    sns.heatmap(
+        df,
+        annot=annot,
+        fmt="",
+        cmap=cmap,
+        linewidths=0.5,
+        linecolor="gray",
+        vmin=0.2,
+        vmax=0.8,
+        ax=ax,
+    )
     ax.set_ylabel("Cancer Type")
     ax.set_xlabel("Feature")
     # fig.tight_layout()
     return fig, ax
 
 
-def compute_cindex_and_significance(df, features, time_col, event_col, type_col, alpha=0.05):
+def compute_cindex_and_significance(
+    df, features, time_col, event_col, type_col, alpha=0.05
+):
     cindex_data = {}
     significance = {}
 
@@ -134,7 +150,9 @@ def compute_cindex_and_significance(df, features, time_col, event_col, type_col,
         for feature in features:
             try:
                 # mean_ci, p_val = bootstrap_c_index(group, feature, time_col, event_col)
-                mean_ci, p_val = permutation_c_index_test(group, feature, time_col, event_col, n_permutations=PERM_N)
+                mean_ci, p_val = permutation_c_index_test(
+                    group, feature, time_col, event_col, n_permutations=PERM_N
+                )
                 cindex_row[feature] = mean_ci
                 sig_row[feature] = p_val
             except:
@@ -148,39 +166,138 @@ def compute_cindex_and_significance(df, features, time_col, event_col, type_col,
     sig_df = adjust_p_values(sig_df, alpha=alpha, method="fdr_bh")
     return cindex_df, sig_df
 
+
 save_dir = f"{RESULTS_DIR}/survival/cindex/"
 os.makedirs(save_dir, exist_ok=True)
 
-features = ["HSC", "mean(ND)", "cv(ND)","mean(CL)","mean(HC)", "AMH", "AMAH", "AFW"] # "cv(ND)","per99(ND)", ,"std(CL)","per99(CL)","std(HC)","per10(HC)"
+features = [
+    "HSC",
+    "mean(ND)",
+    "cv(ND)",
+    "mean(CL)",
+    "mean(HC)",
+    "AMH",
+    "AMAH",
+    "AFW",
+]  # "cv(ND)","per99(ND)", ,"std(CL)","per99(CL)","std(HC)","per10(HC)"
 censor_at = 120
 
 for event_col in ["DSS", "PFI", "OS", "DFI"]:
-    time_col = f'{event_col}.time'
-
+    time_col = f"{event_col}.time"
 
     mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
 
     mitosis_feats = mitosis_feats.dropna(subset=[event_col, time_col])
     mitosis_feats[event_col] = mitosis_feats[event_col].astype(int)
-    mitosis_feats[time_col] = (mitosis_feats[time_col]/30.4).astype(int)
+    mitosis_feats[time_col] = (mitosis_feats[time_col] / 30.4).astype(int)
 
-    if event_col=="PFI":
-        valid_types = ["BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KICH", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "THCA", "PRAD", "SARC", "TGCT", "ACC", "MESO", "THYM", "CHOL"]
-    elif event_col=="DFI":
-        valid_types = ["BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SARC", "STAD", "TGCT", "UCEC"]
-    elif event_col=="OS":
-        valid_types = ["BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KICH", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "SARC", "ACC", "MESO", "CHOL"]
-    elif event_col=="DSS":
-        valid_types = ["BLCA", "BRCA", "CESC", "COADREAD", "ESCA", "GBMLGG", "HNSC", "KIRC", "KIRP", "LIHC", "LUAD", "LUSC", "OV", "PAAD", "SKCM", "STAD", "UCEC", "SARC", "ACC", "MESO", "CHOL"]
+    if event_col == "PFI":
+        valid_types = [
+            "BLCA",
+            "BRCA",
+            "CESC",
+            "COADREAD",
+            "ESCA",
+            "GBMLGG",
+            "HNSC",
+            "KICH",
+            "KIRC",
+            "KIRP",
+            "LIHC",
+            "LUAD",
+            "LUSC",
+            "OV",
+            "PAAD",
+            "SKCM",
+            "STAD",
+            "UCEC",
+            "THCA",
+            "PRAD",
+            "SARC",
+            "TGCT",
+            "ACC",
+            "MESO",
+            "THYM",
+            "CHOL",
+        ]
+    elif event_col == "DFI":
+        valid_types = [
+            "BLCA",
+            "BRCA",
+            "CESC",
+            "COADREAD",
+            "ESCA",
+            "GBMLGG",
+            "HNSC",
+            "KIRC",
+            "KIRP",
+            "LIHC",
+            "LUAD",
+            "LUSC",
+            "OV",
+            "PAAD",
+            "SARC",
+            "STAD",
+            "TGCT",
+            "UCEC",
+        ]
+    elif event_col == "OS":
+        valid_types = [
+            "BLCA",
+            "BRCA",
+            "CESC",
+            "COADREAD",
+            "ESCA",
+            "GBMLGG",
+            "HNSC",
+            "KICH",
+            "KIRC",
+            "KIRP",
+            "LIHC",
+            "LUAD",
+            "LUSC",
+            "OV",
+            "PAAD",
+            "SKCM",
+            "STAD",
+            "UCEC",
+            "SARC",
+            "ACC",
+            "MESO",
+            "CHOL",
+        ]
+    elif event_col == "DSS":
+        valid_types = [
+            "BLCA",
+            "BRCA",
+            "CESC",
+            "COADREAD",
+            "ESCA",
+            "GBMLGG",
+            "HNSC",
+            "KIRC",
+            "KIRP",
+            "LIHC",
+            "LUAD",
+            "LUSC",
+            "OV",
+            "PAAD",
+            "SKCM",
+            "STAD",
+            "UCEC",
+            "SARC",
+            "ACC",
+            "MESO",
+            "CHOL",
+        ]
 
     mitosis_feats = mitosis_feats[mitosis_feats["type"].isin(valid_types)]
 
-    mitosis_feats= mitosis_feats.sort_values(by="type", ascending=True)
+    mitosis_feats = mitosis_feats.sort_values(by="type", ascending=True)
 
     if censor_at > 0:
         mitosis_feats.loc[mitosis_feats[time_col] > censor_at, event_col] = 0
         mitosis_feats.loc[mitosis_feats[time_col] > censor_at, time_col] = censor_at
-
 
     c_index_table, significance_table = compute_cindex_and_significance(
         mitosis_feats, features, time_col, event_col, "type"
@@ -191,12 +308,22 @@ for event_col in ["DSS", "PFI", "OS", "DFI"]:
     # c_index_table = c_index_table[col_order]
     # significance_table = significance_table[col_order]
 
-
     num_cancer = len(mitosis_feats["type"].unique())
-    fig_size = (7, 0.24*num_cancer + 1)
+    fig_size = (7, 0.24 * num_cancer + 1)
     print(f"Figure size: {fig_size}")
-    fig, ax = plot_cindex_heatmap_with_significance(c_index_table, significance_table, figsize=fig_size, cmap="coolwarm")
+    fig, ax = plot_cindex_heatmap_with_significance(
+        c_index_table, significance_table, figsize=fig_size, cmap="coolwarm"
+    )
     ax.set_title(f"C-index for {event_col} (* : permutation test's p-value<0.05)")
-    fig.savefig(save_dir+f"cindex_heatmap_{event_col}_censor{censor_at}.png", dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
-    c_index_table.to_csv(save_dir+f"cindex_table_{event_col}_censor{censor_at}.csv", index=True)
-    significance_table.to_csv(save_dir+f"pvalue_table_{event_col}_censor{censor_at}.csv", index=True)
+    fig.savefig(
+        save_dir + f"cindex_heatmap_{event_col}_censor{censor_at}.png",
+        dpi=600,
+        bbox_inches="tight",
+        pad_inches=0.01,
+    )
+    c_index_table.to_csv(
+        save_dir + f"cindex_table_{event_col}_censor{censor_at}.csv", index=True
+    )
+    significance_table.to_csv(
+        save_dir + f"pvalue_table_{event_col}_censor{censor_at}.csv", index=True
+    )

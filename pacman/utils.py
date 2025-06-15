@@ -8,12 +8,14 @@ from matplotlib import pyplot as plt
 from scipy import stats
 from statsmodels.stats.multitest import multipletests
 
+from pacman.config import ALL_CANCERS
+
 
 def calculate_corr_matrix(
     df1: pd.DataFrame,
     df2: pd.DataFrame,
     method: str = "spearman",
-    pvalue_correction: Optional[str] = "fdr_bh"
+    pvalue_correction: Optional[str] = "fdr_bh",
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Compute pairwise correlation and p-value matrices between the columns of two dataframes.
@@ -46,14 +48,16 @@ def calculate_corr_matrix(
         raise ValueError("Method must be 'spearman' or 'pearson'")
 
     corr_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns, dtype=np.float32)
-    pvalue_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns, dtype=np.float32)
+    pvalue_matrix = pd.DataFrame(
+        index=df1.columns, columns=df2.columns, dtype=np.float32
+    )
     for row in df1.columns:
         for col in df2.columns:
             df_no_na = pd.concat([df1[row], df2[col]], axis=1)
             df_no_na = df_no_na.dropna(axis=0, how="any")
-            if method == 'spearman':
+            if method == "spearman":
                 corr, pvalue = stats.spearmanr(df_no_na[row], df_no_na[col])
-            elif method == 'pearson':
+            elif method == "pearson":
                 corr, pvalue = stats.pearsonr(df_no_na[row], df_no_na[col])
             corr_matrix.at[row, col] = np.float32(corr)
             pvalue_matrix.at[row, col] = np.float32(pvalue)
@@ -70,15 +74,19 @@ def calculate_corr_matrix(
 
     return corr_matrix, pvalue_matrix
 
+
 def get_colors_dict():
-    domain_list = ['ACC', 'BLCA', 'BRCA', 'CESC', 'CHOL', 'COADREAD', 'DLBC', 'ESCA', 'GBMLGG', 'HNSC', 'KICH', 'KIRC', 'KIRP', 'LIHC', 'LUAD', 'LUSC', 'MESO', 'OV', 'PAAD', 'PCPG', 'PRAD', 'SARC', 'SKCM', 'STAD', 'TGCT', 'THCA', 'THYM', 'UCEC', 'UCS']
     # Use Set3 color palette from Matplotlib
-    set3_palette = list(plt.cm.tab20.colors) + [plt.cm.tab20b.colors[i] for i in [0, 2, 4, 5, 8, 9, 13, 16]] + [plt.cm.tab20c.colors[i] for i in [4, 16]] # plt.cm.tab20.colors + plt.cm.tab20b.colors
-    
+    set3_palette = (
+        list(plt.cm.tab20.colors)
+        + [plt.cm.tab20b.colors[i] for i in [0, 2, 4, 5, 8, 9, 13, 16]]
+        + [plt.cm.tab20c.colors[i] for i in [4, 16]]
+    )  # plt.cm.tab20.colors + plt.cm.tab20b.colors
+
     # Create a cycle iterator for the colors
     color_cycle = cycle(set3_palette)
 
     # Generate custom color dictionary
-    custom_colors = {domain: next(color_cycle) for domain in domain_list}
+    custom_colors = {domain: next(color_cycle) for domain in ALL_CANCERS}
 
     return custom_colors

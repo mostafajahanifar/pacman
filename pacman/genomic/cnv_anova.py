@@ -69,13 +69,11 @@ selected_feats = [
 mitosis_feats = mitosis_feats[["bcr_patient_barcode", "type"] + selected_feats]
 gene_exp_cancer = gene_cnv_all.dropna(axis=1, how="all")
 
-print(7*"="*7)
+print(7 * "=" * 7)
 print("Running ANOVA Analysis on Copy Number Variations (CNV)")
-print(7*"="*7)
+print(7 * "=" * 7)
 # do experiment for each cancer type
-for ci, cancer_type in enumerate(
-    sorted(gene_cnv_all["type"].unique())
-):
+for ci, cancer_type in enumerate(sorted(gene_cnv_all["type"].unique())):
     print(f"ANOVA analysis for CNV in {cancer_type} ...")
     save_dir = f"{save_root}/{cancer_type}/"
     os.makedirs(save_dir, exist_ok=True)
