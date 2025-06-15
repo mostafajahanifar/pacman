@@ -15,6 +15,7 @@ from matplotlib.offsetbox import AnchoredText
 from survival_utils import cross_validation_tcga_feature_direct
 from tqdm import tqdm
 
+from pacman.config import DATA_DIR, RESULTS_DIR
 from pacman.utils import add_at_risk_counts
 
 warnings.filterwarnings("ignore")
@@ -62,7 +63,7 @@ def cv_helper(discov_df, event_col, split_folder, km_plot=False, x_label="Months
 
     for run in ex_iterator:
         # forming the training and validation cohorts
-        if split_folder is None:
+        if split_folder is None: #bootstraping
             index_train = list(rng.choice(np.nonzero(EE==0)[0],size = len(EE)-np.sum(EE),replace=True))+list(rng.choice(np.nonzero(EE==1)[0],size = np.sum(EE),replace=True))
             index_test = list(set(range(len(EE))).difference(index_train))
             train_set = discov_df.iloc[index_train]
@@ -75,11 +76,11 @@ def cv_helper(discov_df, event_col, split_folder, km_plot=False, x_label="Months
         train_set.reset_index(inplace=True)
         test_set.reset_index(inplace=True)
 
-        if shuffle_data:
+        if shuffle_data: # for permutation test
             random_indices = np.random.permutation(train_set.index)
             train_set[event_col] = train_set[event_col].loc[random_indices].reset_index(drop=True)
             train_set[time_col] = train_set[time_col].loc[random_indices].reset_index(drop=True)
-            
+
             random_indices = np.random.permutation(test_set.index)
             test_set[event_col] = test_set[event_col].loc[random_indices].reset_index(drop=True)
             test_set[time_col] = test_set[time_col].loc[random_indices].reset_index(drop=True)
@@ -92,6 +93,7 @@ def cv_helper(discov_df, event_col, split_folder, km_plot=False, x_label="Months
         if output==-1 : #something went wrong, neglegct this run
             print(f"something went wrong with run {run}")
             continue
+        # accumulate the runs outputs
         if run == 0:
             T_lower_test, T_upper_test, E_lower_test, E_upper_test, cindex_test, pvalue_test, test_hazard_ratios = output
         if run != 0 and output != -1:
@@ -156,8 +158,7 @@ if __name__ == '__main__':
     parser.add_argument('--cancer_subset', default=None)
     parser.add_argument('--event_type', required=True)
     parser.add_argument('--censor_at', type=int, default=-1)
-    parser.add_argument('--results_root', default='./CV_results/')
-    parser.add_argument('--splits_root', default=None) # 
+    parser.add_argument('--splits_root', default="./splits/")
     parser.add_argument('--cutoff_mode', default="optimal")
     parser.add_argument('--baseline_experiment', type=bool, default=False)
 
@@ -171,55 +172,34 @@ if __name__ == '__main__':
     splits_root = args.splits_root
     cutoff_mode = args.cutoff_mode
 
+    results_root = f"{RESULTS_DIR}/survival/kmplots_cv/"
+    splits_root = "./splits/"
+
+
     print(args)
 
     # defining the parameters for survival analysis
     model_type = 'cox' ## 'rsf': for Random Survival Forest, 'cox': for Cox PH regression model
     save_plot = True
     rsf_rseed = 100 ## random seed for Random Survival Forest
-    cutoff_point =  -1 ## 0.92 ##if set to -1 then median will be used as cut off. If set to any other positive value then cut_mode option will be ignores and the fixed cut off provided will be used for stratification of high vs low risk cases
+    cutoff_point =  -1 ## if set to -1 then median will be used
     time_col = f'{event_type}.time'
     event_col = event_type
-    subset = cancer_subset
-    only_40x = False
-    # Raeading the data and filtering
-    plots_save_path = 'all_feats_combi/KM_plots/' #ALAKI
-    
+
     discov_val_feats_path = '/mnt/lab-temp-it-services/u2070124/Code/mitsa/gene/data/ST1-tcga_mtfs.xlsx'
     discov_df = pd.read_excel(discov_val_feats_path)
 
-    # discov_val_feats_path = '/mnt/lab-temp-it-services/u2070124/Code/mitsa/gene/data/tcga_features_final.csv'
-    # discov_df = pd.read_csv(discov_val_feats_path)
-    if only_40x:
-        discov_df = discov_df[discov_df["wsi_obj_power"]==40]
+
     discov_df = discov_df.loc[discov_df['type'].isin(cancer_types)]
     discov_df = discov_df.dropna(subset=[event_col, time_col])
     discov_df[event_col] = discov_df[event_col].astype(int)
     discov_df[time_col] = (discov_df[time_col]/30.4).astype(int)
     print(f"Number of cases in FS experiment after dropping NA: {len(discov_df)}")
 
-    # finding the list of best features
-    if censor_at == -1:
-        FS_root = f"results_final_all/feature_selection/FS_results_NoCensoring/FS_{cancer_types}/"
-        FS_path = FS_root + f"FS_{cancer_types}_{event_type}_censor-1.txt"
-    else:    
-        FS_root = f"results_final_all/feature_selection/FS_results_{int(censor_at/12)}years/FS_{cancer_types}/"
-        FS_path = FS_root + f"FS_{cancer_types}_{event_type}_censor{censor_at}.txt"
-    print('Reading the best features from : ', FS_path)
-    if args.baseline_experiment:
-        feats_list = ['HSC']
-        print(f'Running baseline experiments with {feats_list}')
-    else:
-        FS_df = pd.read_csv(FS_path, delimiter=';')
-        FS_df = FS_df.sort_values(['c_index', 'p_value'], ascending=[False, True])
-        best_feat_ind = FS_df.index[0]
-        feats_list = ast.literal_eval(FS_df['selected_features'][best_feat_ind])
-    
-    feats_list = ["AFW"] # ["mean(ND)", "cv(ND)", "mean(CL)", "mean(HC)"]
-    print("WARNING: Using hardcoded features list for testing")
-
+    # Selecting the feature(s) for patient stratification
+    feats_list = ["mean(ND)"] # ["mean(ND)", "cv(ND)", "mean(CL)", "mean(HC)", "AFW"]
     # setting the results path
-    save_dir = f'./{results_root}/CV_{cancer_types}_Corrected/'
+    save_dir = f'{results_root}/{cancer_types}/'
     os.makedirs(save_dir, exist_ok=True)
 
     if splits_root is not None:
@@ -232,17 +212,17 @@ if __name__ == '__main__':
     ref_logrank_stat = logrank_results.test_statistic
 
     # now repeat the cross-validation several times and check the statistics to arrive the p-value
-    num_high_replicates = 0
+    num_greater_by_chance = 0
     num_valid_runs = 0
     for _ in tqdm(range(CV_REPEATS), desc='Corrcting p-value'):
         try:
-            _, logrank_results_repeats = cv_helper(discov_df, event_col, split_folder, km_plot=False, shuffle_data=True, cutoff_mode="median")
+            _, logrank_results_repeats = cv_helper(discov_df, event_col, split_folder, km_plot=False, shuffle_data=True, cutoff_mode=cutoff_mode)
         except:
             continue
         if logrank_results_repeats.test_statistic > ref_logrank_stat:
             num_high_replicates += 1
         num_valid_runs += 1
-    corrected_p_value = num_high_replicates/num_valid_runs
+    corrected_p_value = num_greater_by_chance/num_valid_runs
     
     avr_cindex = df_to_save["c_index"].mean()
     print("Average C-Index: ", avr_cindex)
@@ -266,7 +246,7 @@ if __name__ == '__main__':
     ax.spines[['right', 'top']].set_visible(False)
 
     # save the results
-    save_path = save_dir + f"cv_results_{cancer_types}_{event_type}_censor{censor_at}_cindex{avr_cindex:.2}_pvalue{corrected_p_value:.3}"
+    save_path = save_dir + f"kmplot_cv_{cancer_types}_{event_type}_censor{censor_at}_cindex{avr_cindex:.2}_pvalue{corrected_p_value:.3}"
     df_to_save.to_csv(save_path+".csv", index=None)
     km_fig.savefig(save_path + '.png', dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
     km_fig.savefig(save_path + '.pdf', dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
@@ -283,6 +263,6 @@ if __name__ == '__main__':
     ax.spines[['right', 'top']].set_visible(False)
 
     # save the results
-    save_path = save_dir + f"cv_results_{cancer_types}_{event_type}_censor{censor_at}_cindex{avr_cindex:.2}_pvalue{corrected_p_value:.3}_withCounts"
+    save_path = save_dir + f"risked_kmplot_cv_{cancer_types}_{event_type}_censor{censor_at}_cindex{avr_cindex:.2}_pvalue{corrected_p_value:.3}"
     km_fig_counts.savefig(save_path + '.png', dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
     km_fig_counts.savefig(save_path + '.pdf', dpi=600, bbox_inches = 'tight', pad_inches = 0.01)
