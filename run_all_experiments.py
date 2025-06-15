@@ -10,7 +10,7 @@ import subprocess
 commands = [
     "python -m pacman.landscape.features_box_plots",
     "python -m pacman.landscape.features_over_ethnicities",
-    "python -m pacman.landscape.temprature_distribution",
+    "python -m pacman.landscape.temperature_distribution",
     "python -m pacman.landscape.features_radar_plots",
 
     "python -m pacman.genomic.canonical_correlation_analysis",

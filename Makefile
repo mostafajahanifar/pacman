@@ -13,7 +13,7 @@ landscape:
 	@echo "Running Landscape Analysis..."
 	$(PYTHON) -m pacman.landscape.features_box_plots
 	$(PYTHON) -m pacman.landscape.features_over_ethnicities
-	$(PYTHON) -m pacman.landscape.temprature_distribution
+	$(PYTHON) -m pacman.landscape.temeprature_distribution
 	$(PYTHON) -m pacman.landscape.features_radar_plots
 
 genomic:

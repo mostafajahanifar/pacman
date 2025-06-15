@@ -62,11 +62,25 @@ pacman/config.py
 ```
 Especially, the path to the data (for reading or downloading) and the path for saaving the results can be changed in this module.
 
-### 5. Run an analysis script
+### 5. Run one or all analysis scripts
 Run any analysis module using:
 ```bash
 python -m pacman.genomic.cnv_anova
 ```
+
+Alternatively, to reproduce all analyses and generate results:
+
+- **If you have `make` installed** (recommended):
+
+  ```bash
+  make all
+  ```
+
+- **If you don't have `make` (in Windows for example)**, use the provided Python script:
+
+  ```bash
+  python run_all.py
+  ```
 
 ---
 
