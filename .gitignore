@@ -7,7 +7,6 @@ __pycache__/
 
 # Ignore data
 data/
-splits/
 
 
 # Ignore results directories (so you don’t accidentally commit large outputs)
