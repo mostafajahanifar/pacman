@@ -145,7 +145,7 @@ mitosis_feats = pd.read_excel(os.path.join(DATA_DIR, "ST1-tcga_mtfs.xlsx"))
 selected_feats = [
     "AMAH",
     "AFW",
-    "ANH",
+    "AMH",
     "HSC",
 ]
 
