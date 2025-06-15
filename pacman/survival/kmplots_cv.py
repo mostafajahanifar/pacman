@@ -19,8 +19,8 @@ from pacman.survival.utils import (add_at_risk_counts,
 
 warnings.filterwarnings("ignore")
 
-BOOTSTRAP_RUNS = 500
-PERM_REPS = 1
+BOOTSTRAP_RUNS = 1000
+PERM_REPS = 1000
 CV_FOLDS = 5
 
 # Selecting the feature(s) for patient stratification
