@@ -108,5 +108,7 @@ If you use this repository in your work, please cite:
 
 ```
 
-## 📜 License
-MIT License
+## 📜 **License**: [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/)
+This work is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License.  
+You are free to share and adapt it for any **non-commercial** purpose with attribution.  
+**Commercial use requires explicit permission.**
